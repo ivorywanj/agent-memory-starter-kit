@@ -75,6 +75,19 @@ Run:
 ```bash
 python3 scripts/memory_guard.py
 python3 tests/test_public_package.py
+python3 scripts/public_release_check.py
+```
+
+## Release Checks
+
+GitHub Actions runs the public fixture tests, memory guard, and public release check on every push and pull request.
+
+For a local release check, run:
+
+```bash
+python3 tests/test_public_package.py
+python3 scripts/memory_guard.py
+python3 scripts/public_release_check.py
 ```
 
 ## Publish Boundary

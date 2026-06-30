@@ -15,4 +15,3 @@ import memory_runtime  # noqa: E402
 
 if __name__ == "__main__":
     raise SystemExit(memory_runtime.main(sys.argv))
-

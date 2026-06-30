@@ -107,12 +107,18 @@ def test_memory_guard_passes_public_package() -> None:
     assert "memory_guard: pass" in result.stdout
 
 
+def test_public_release_check_passes_package() -> None:
+    result = run("scripts/public_release_check.py")
+    assert "public_release_check: pass" in result.stdout
+
+
 def main() -> int:
     tests = [
         test_init_creates_public_runtime,
         test_memory_loop_promotes_recalls_and_deprecates,
         test_init_blocks_secret_shaped_answers,
         test_memory_guard_passes_public_package,
+        test_public_release_check_passes_package,
     ]
     for test in tests:
         test()
