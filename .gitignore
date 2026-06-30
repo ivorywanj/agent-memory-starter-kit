@@ -1,0 +1,13 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.venv/
+venv/
+node_modules/
+memory/runtime/
+memory/history/runtime/
+memory/hot/*.draft.md
+content/data/memory-benchmark/runs/

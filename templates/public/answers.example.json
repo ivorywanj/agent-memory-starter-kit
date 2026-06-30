@@ -1,0 +1,27 @@
+{
+  "name": "Alex",
+  "language": "English",
+  "work_type": "indie product builder",
+  "communication_style": "Conclusion first, plain language, ask before risky actions.",
+  "projects": [
+    "Example SaaS",
+    "Content workflow"
+  ],
+  "confirmation_rules": [
+    "public send",
+    "production deploy",
+    "database migration",
+    "destructive action"
+  ],
+  "never_store": [
+    "secrets",
+    "API keys",
+    "tokens",
+    "webhook URLs",
+    "database URLs",
+    "private keys",
+    "raw sessions",
+    "customer data"
+  ]
+}
+
