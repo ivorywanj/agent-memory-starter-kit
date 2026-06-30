@@ -23,13 +23,33 @@ There is no background service, vector database, hosted backend, or web UI in v1
 
 ## Quickstart
 
-Clone and initialize a memory runtime:
+Clone the starter kit:
 
 ```bash
 git clone https://github.com/ivorywanj/agent-memory-starter-kit.git
 cd agent-memory-starter-kit
-scripts/memory --root ./my-agent-memory init --answers templates/public/answers.example.json
 ```
+
+For a real user, start with the Agent-led first-run wizard. Copy the prompt from `docs/first-run-wizard.md` into Codex, Claude Code, Cursor, or another local-file-reading Agent.
+
+The Agent should ask one question at a time, help the user answer, then run `scripts/memory init` with the user's own answers. The user should not hand-write Markdown.
+
+Example generated command:
+
+```bash
+scripts/memory --root ./my-agent-memory init \
+  --name "Alex" \
+  --language "English" \
+  --work-type "indie product builder" \
+  --communication-style "conclusion first, plain language" \
+  --project "Example SaaS | ~/projects/example-saas" \
+  --confirmation-rule "public send" \
+  --confirmation-rule "production deploy" \
+  --never-store "secrets" \
+  --never-store "customer data"
+```
+
+The CLI creates a working starter runtime. `templates/public/answers.example.json` is a demo fixture for tests and non-interactive examples, not the default real-user onboarding path.
 
 Run the public checks:
 
@@ -38,8 +58,6 @@ python3 tests/test_public_package.py
 python3 scripts/memory_guard.py
 python3 scripts/public_release_check.py
 ```
-
-The CLI creates a working starter runtime. The user does not hand-write Markdown.
 
 ```text
 AGENTS.md
@@ -56,6 +74,20 @@ memory/history/README.md
 memory/inbox/README.md
 memory/promotions/README.md
 ```
+
+## First-Run Wizard
+
+The onboarding flow asks one question at a time:
+
+1. What should Agents call you?
+2. What language should Agents use by default?
+3. What kind of work do you do?
+4. What are your current 1-3 projects? If a project has a workspace folder, include it.
+5. How should Agents communicate with you?
+6. Which actions require confirmation?
+7. What must never be stored in memory?
+
+Project workspaces are routing hints, not ingestion permission. The runtime records the workspace pointer and whether it existed at init time, but it does not read, scan, index, or import the folder.
 
 ## First Agent Prompt
 

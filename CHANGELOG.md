@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.2
+
+- Added Agent-led first-run wizard documentation.
+- Made real-user onboarding ask one question at a time instead of using the demo answers fixture.
+- Added project workspace pointers for initialization.
+- Strengthened public release checks for first-run wizard and workspace pointer documentation.
+
 ## v0.1.1
 
 - Reworked README as a product homepage for external users.

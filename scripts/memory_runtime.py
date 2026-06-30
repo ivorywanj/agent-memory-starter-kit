@@ -177,10 +177,10 @@ def load_init_answers(args: argparse.Namespace) -> dict:
 
 def prompt_for_missing_answers(answers: dict) -> dict:
     prompts = {
-        "name": "What should Agents call you?",
-        "language": "Preferred response language?",
-        "work_type": "What kind of work should Agents help with?",
-        "communication_style": "Preferred communication style?",
+        "name": "Step 1/7 - What should Agents call you? Example: Alex / Sam / your nickname",
+        "language": "Step 2/7 - What language should Agents use by default? Example: English / Chinese",
+        "work_type": "Step 3/7 - What kind of work should Agents help with? Example: indie product builder / code and bugs / research and writing",
+        "communication_style": "Step 5/7 - How should Agents communicate with you? Example: conclusion first, concise, ask before risky actions",
     }
     updated = dict(answers)
     for key, prompt in prompts.items():
@@ -189,11 +189,11 @@ def prompt_for_missing_answers(answers: dict) -> dict:
         if value:
             updated[key] = value
     for key, prompt in (
-        ("projects", "Current projects, comma-separated"),
-        ("confirmation_rules", "Actions that require confirmation, comma-separated"),
-        ("never_store", "Things memory must never store, comma-separated"),
+        ("projects", "Step 4/7 - Current projects and optional workspace, comma-separated. Example: Example SaaS | ~/projects/example-saas"),
+        ("confirmation_rules", "Step 6/7 - Actions that require confirmation, comma-separated. Example: public send, production deploy, delete files"),
+        ("never_store", "Step 7/7 - Things memory must never store, comma-separated. Example: secrets, customer data, raw sessions"),
     ):
-        current = ", ".join(ensure_list(updated.get(key)))
+        current = ", ".join(project_display(project) for project in normalize_projects(updated.get(key))) if key == "projects" else ", ".join(ensure_list(updated.get(key)))
         value = input(f"{prompt} [{current}]: ").strip()
         if value:
             updated[key] = [item.strip() for item in value.split(",") if item.strip()]
@@ -205,7 +205,8 @@ def normalize_init_answers(answers: dict) -> dict:
     normalized.update(answers)
     for key in ("name", "language", "work_type", "communication_style"):
         normalized[key] = str(normalized.get(key) or INIT_DEFAULTS[key]).strip()
-    for key in ("projects", "confirmation_rules", "never_store"):
+    normalized["projects"] = normalize_projects(normalized.get("projects"))
+    for key in ("confirmation_rules", "never_store"):
         values = ensure_list(normalized.get(key))
         normalized[key] = values or list(INIT_DEFAULTS[key])
     return normalized
@@ -226,6 +227,58 @@ def bullet_lines(items: list[str]) -> str:
     return "\n".join(f"- {item}" for item in items)
 
 
+def normalize_projects(value: object) -> list[dict]:
+    if isinstance(value, dict):
+        raw_projects = [value]
+    else:
+        raw_projects = value if isinstance(value, list) else ensure_list(value)
+    projects: list[dict] = []
+    for item in raw_projects:
+        if isinstance(item, dict):
+            name = str(item.get("name") or item.get("title") or "").strip()
+            workspace = str(item.get("workspace") or item.get("path") or "").strip()
+        else:
+            text = str(item).strip()
+            if "|" in text:
+                name, workspace = [part.strip() for part in text.split("|", 1)]
+            else:
+                name, workspace = text, ""
+        if not name:
+            continue
+        project = {
+            "name": name,
+            "workspace": workspace,
+            "workspace_status": workspace_status(workspace),
+        }
+        projects.append(project)
+    if projects:
+        return projects
+    return normalize_projects(INIT_DEFAULTS["projects"])
+
+
+def workspace_status(workspace: str) -> str:
+    if not workspace:
+        return "not_provided"
+    return "verified_at_init" if Path(workspace).expanduser().exists() else "provided_unverified"
+
+
+def project_display(project: dict) -> str:
+    workspace = project.get("workspace", "")
+    return f"{project['name']} | {workspace}" if workspace else project["name"]
+
+
+def project_markdown(projects: list[dict]) -> str:
+    lines: list[str] = []
+    for project in projects:
+        lines.append(f"- {project['name']}")
+        if project["workspace"]:
+            lines.append(f"  - workspace: {project['workspace']}")
+            lines.append(f"  - workspace_status: {project['workspace_status']}")
+        else:
+            lines.append("  - workspace: not provided")
+    return "\n".join(lines)
+
+
 def guard_text(root: Path, text: str) -> list[memory_guard.Finding]:
     probe = runtime_root(root) / ".guard-probe.md"
     probe.parent.mkdir(parents=True, exist_ok=True)
@@ -240,14 +293,16 @@ def guard_text(root: Path, text: str) -> list[memory_guard.Finding]:
 
 
 def public_template_files(answers: dict) -> dict[str, str]:
-    projects = bullet_lines(answers["projects"])
+    projects = project_markdown(answers["projects"])
     confirmation_rules = bullet_lines(answers["confirmation_rules"])
     never_store = bullet_lines(answers["never_store"])
-    first_project = answers["projects"][0]
+    first_project = answers["projects"][0]["name"]
     project_rows = [
         {
-            "id": safe_slug(project).lower(),
-            "name": project,
+            "id": safe_slug(project["name"]).lower(),
+            "name": project["name"],
+            "workspace": project["workspace"],
+            "workspace_status": project["workspace_status"],
             "status": "initialized",
             "source": "memory init",
         }

@@ -32,11 +32,17 @@ REQUIRED_FILES = (
     "tests/test_public_package.py",
     "templates/public/answers.example.json",
     "docs/releases/v0.1.1.md",
+    "docs/releases/v0.1.2.md",
+    "docs/first-run-wizard.md",
 )
 README_REQUIRED_SNIPPETS = (
     "Local-first memory runtime for coding agents.",
     "## Quickstart",
-    "scripts/memory --root ./my-agent-memory init --answers templates/public/answers.example.json",
+    "Agent-led first-run wizard",
+    "answers.example.json` is a demo fixture",
+    "--project \"Example SaaS | ~/projects/example-saas\"",
+    "## First-Run Wizard",
+    "workspace pointer",
     "## Memory Loop",
     "init -> remember -> recall -> improve -> forget",
     "## Safety",

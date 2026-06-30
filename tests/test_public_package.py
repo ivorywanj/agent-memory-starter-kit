@@ -30,7 +30,25 @@ def run(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
 def test_init_creates_public_runtime() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp) / "runtime"
-        result = run("scripts/memory", "--root", str(root), "init", "--answers", "templates/public/answers.example.json")
+        workspace = Path(tmp) / "example-saas"
+        workspace.mkdir()
+        (workspace / "private-note.md").write_text("DO_NOT_IMPORT_WORKSPACE_CONTENT", encoding="utf-8")
+        answers = Path(tmp) / "answers.json"
+        answers.write_text(
+            json.dumps(
+                {
+                    "name": "Alex",
+                    "language": "English",
+                    "work_type": "indie product builder",
+                    "communication_style": "Conclusion first, plain language.",
+                    "projects": [{"name": "Example SaaS", "workspace": str(workspace)}, {"name": "Content workflow"}],
+                    "confirmation_rules": ["public send", "production deploy"],
+                    "never_store": ["secrets", "tokens", "customer data"],
+                }
+            ),
+            encoding="utf-8",
+        )
+        result = run("scripts/memory", "--root", str(root), "init", "--answers", str(answers))
         expected = [
             "AGENTS.md",
             "ONBOARDING.md",
@@ -45,14 +63,20 @@ def test_init_creates_public_runtime() -> None:
         ]
         combined = "\n".join((root / rel).read_text(encoding="utf-8") for rel in expected)
         all_expected_exist = all((root / rel).exists() for rel in expected)
-        second = run("scripts/memory", "--root", str(root), "init", "--answers", "templates/public/answers.example.json", check=False)
+        projects_json = json.loads((root / "memory/projects/projects.json").read_text(encoding="utf-8"))
+        second = run("scripts/memory", "--root", str(root), "init", "--answers", str(answers), check=False)
 
     assert "Memory initialized" in result.stdout
     assert "No Markdown editing required" in result.stdout
     assert all_expected_exist
     assert "Alex" in combined
     assert "Example SaaS" in combined
+    assert str(workspace) in combined
+    assert "DO_NOT_IMPORT_WORKSPACE_CONTENT" not in combined
     assert "remember -> recall -> improve -> forget" in combined
+    assert projects_json["projects"][0]["workspace"] == str(workspace)
+    assert projects_json["projects"][0]["workspace_status"] == "verified_at_init"
+    assert projects_json["projects"][1]["workspace_status"] == "not_provided"
     private_markers = ("Wan" + "jia", "万" + "家", "Journey" + "Gen")
     assert all(marker not in combined for marker in private_markers)
     assert second.returncode == 1
@@ -92,7 +116,7 @@ def test_init_blocks_secret_shaped_answers() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         answers = Path(tmp) / "answers.json"
         answers.write_text(
-            json.dumps({"name": "Alex", "projects": ["sk-" + "abcdefghijklmnopqrstuvwxyz123456"]}),
+            json.dumps({"name": "Alex", "projects": [{"name": "Safe name", "workspace": "sk-" + "abcdefghijklmnopqrstuvwxyz123456"}]}),
             encoding="utf-8",
         )
         result = run("scripts/memory", "--root", str(Path(tmp) / "runtime"), "init", "--answers", str(answers), check=False)
