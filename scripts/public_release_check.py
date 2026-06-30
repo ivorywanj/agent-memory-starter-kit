@@ -33,7 +33,10 @@ REQUIRED_FILES = (
     "templates/public/answers.example.json",
     "docs/releases/v0.1.1.md",
     "docs/releases/v0.1.2.md",
+    "docs/releases/v0.1.3.md",
     "docs/first-run-wizard.md",
+    "docs/agent-sharing.md",
+    "docs/workflows/memory-share.md",
 )
 README_REQUIRED_SNIPPETS = (
     "Local-first memory runtime for coding agents.",
@@ -41,6 +44,8 @@ README_REQUIRED_SNIPPETS = (
     "Agent-led first-run wizard",
     "answers.example.json` is a demo fixture",
     "--project \"Example SaaS | ~/projects/example-saas\"",
+    "scripts/memory --root ./my-agent-memory share --agent codex --workspace ./my-project",
+    "## Sharing Across Agents",
     "## First-Run Wizard",
     "workspace pointer",
     "## Memory Loop",

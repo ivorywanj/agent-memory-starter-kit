@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.3
+
+- Added `memory share` for pointer-only bridge files across Codex, Claude Code, Cursor, and generic Agents.
+- Added public Agent sharing docs and `/memory-share` workflow.
+- Added tests proving bridges point to one shared runtime without copying user memory into Agent workspaces.
+
 ## v0.1.2
 
 - Added Agent-led first-run wizard documentation.

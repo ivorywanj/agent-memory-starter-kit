@@ -51,6 +51,16 @@ scripts/memory --root ./my-agent-memory init \
 
 The CLI creates a working starter runtime. `templates/public/answers.example.json` is a demo fixture for tests and non-interactive examples, not the default real-user onboarding path.
 
+Share the same runtime with another Agent or workspace:
+
+```bash
+scripts/memory --root ./my-agent-memory share --agent codex --workspace ./my-project
+scripts/memory --root ./my-agent-memory share --agent claude --workspace ./my-project
+scripts/memory --root ./my-agent-memory share --agent cursor --workspace ./my-project
+```
+
+`memory share` writes pointer-only bridge files. It does not copy profile, project facts, hot memory, session cache, history, or deprecated audit into each Agent workspace.
+
 Run the public checks:
 
 ```bash
@@ -102,6 +112,27 @@ Then answer:
 4. What must never be stored or printed?
 5. Which task-specific files would you read next only if needed?
 ```
+
+## Sharing Across Agents
+
+Use one memory runtime as the shared source of truth, then generate small bridge files for each Agent workspace:
+
+```bash
+scripts/memory --root ./my-agent-memory share --agent codex --workspace ./my-project
+scripts/memory --root ./my-agent-memory share --agent claude --workspace ./my-project
+scripts/memory --root ./my-agent-memory share --agent cursor --workspace ./my-project
+```
+
+Default bridge targets:
+
+| Agent | Target |
+|---|---|
+| Codex | `AGENTS.md` |
+| Claude Code | `CLAUDE.md` |
+| Cursor | `.cursor/rules/agent-memory.mdc` |
+| Generic | `AGENT_MEMORY.md` |
+
+The bridge file tells the Agent where the shared runtime lives and which startup path to read. It must stay pointer-only so memory does not fork across tools.
 
 ## Memory Loop
 

@@ -60,10 +60,19 @@ def test_init_creates_public_runtime() -> None:
             "tasks/lessons.md",
             "memory/projects/projects.md",
             "memory/projects/projects.json",
+            "memory/agents/README.md",
         ]
         combined = "\n".join((root / rel).read_text(encoding="utf-8") for rel in expected)
         all_expected_exist = all((root / rel).exists() for rel in expected)
         projects_json = json.loads((root / "memory/projects/projects.json").read_text(encoding="utf-8"))
+        codex_workspace = Path(tmp) / "codex-workspace"
+        codex_workspace.mkdir()
+        codex_share = run("scripts/memory", "--root", str(root), "share", "--agent", "codex", "--workspace", str(codex_workspace))
+        codex_bridge = (codex_workspace / "AGENTS.md").read_text(encoding="utf-8")
+        cursor_workspace = Path(tmp) / "cursor-workspace"
+        cursor_workspace.mkdir()
+        cursor_share = run("scripts/memory", "--root", str(root), "share", "--agent", "cursor", "--workspace", str(cursor_workspace))
+        cursor_bridge_exists = (cursor_workspace / ".cursor/rules/agent-memory.mdc").exists()
         second = run("scripts/memory", "--root", str(root), "init", "--answers", str(answers), check=False)
 
     assert "Memory initialized" in result.stdout
@@ -77,6 +86,13 @@ def test_init_creates_public_runtime() -> None:
     assert projects_json["projects"][0]["workspace"] == str(workspace)
     assert projects_json["projects"][0]["workspace_status"] == "verified_at_init"
     assert projects_json["projects"][1]["workspace_status"] == "not_provided"
+    assert "Shared memory bridge ready" in codex_share.stdout
+    assert "This bridge is a pointer only" in codex_bridge
+    assert "Alex" not in codex_bridge
+    assert "Example SaaS" not in codex_bridge
+    assert "DO_NOT_IMPORT_WORKSPACE_CONTENT" not in codex_bridge
+    assert "Shared memory bridge ready" in cursor_share.stdout
+    assert cursor_bridge_exists
     private_markers = ("Wan" + "jia", "万" + "家", "Journey" + "Gen")
     assert all(marker not in combined for marker in private_markers)
     assert second.returncode == 1

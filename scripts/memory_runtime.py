@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import re
+import shlex
 import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
@@ -75,6 +76,18 @@ INIT_DEFAULTS = {
     "projects": ["First Project"],
     "confirmation_rules": ["public send", "production deploy", "database migration", "destructive action"],
     "never_store": ["secrets", "API keys", "tokens", "webhook URLs", "database URLs", "private keys", "raw sessions"],
+}
+AGENT_BRIDGE_TARGETS = {
+    "codex": Path("AGENTS.md"),
+    "claude": Path("CLAUDE.md"),
+    "cursor": Path(".cursor/rules/agent-memory.mdc"),
+    "generic": Path("AGENT_MEMORY.md"),
+}
+AGENT_LABELS = {
+    "codex": "Codex",
+    "claude": "Claude Code",
+    "cursor": "Cursor",
+    "generic": "Generic Agent",
 }
 
 
@@ -279,6 +292,88 @@ def project_markdown(projects: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def bridge_target_for(agent: str, workspace: Path | None, explicit_target: Path | None, root: Path) -> Path:
+    if explicit_target:
+        return explicit_target.expanduser().resolve()
+    if workspace:
+        return (workspace.expanduser() / AGENT_BRIDGE_TARGETS[agent]).resolve()
+    return (root / "memory/agents" / f"{agent}.md").resolve()
+
+
+def agent_bridge_text(root: Path, agent: str) -> str:
+    label = AGENT_LABELS[agent]
+    root_text = str(root)
+    memory_cmd = shlex.quote(str(root / "scripts/memory"))
+    root_arg = shlex.quote(root_text)
+    return f"""# Agent Memory Bridge
+
+This {label} workspace uses a shared Agent Memory runtime.
+
+Runtime root:
+
+```text
+{root_text}
+```
+
+Read first:
+
+```text
+{root_text}/AGENTS.md
+-> {root_text}/ONBOARDING.md
+-> {root_text}/memory/hot/USER.md
+-> {root_text}/memory/hot/MEMORY.md
+-> task-specific source-of-truth files only when needed
+```
+
+This bridge is a pointer only. Do not copy user profile, project facts, hot memory, session cache, history, or deprecated audit into this workspace file.
+
+Authority:
+
+- Markdown files under the runtime root are the source of truth.
+- Hot memory is startup cache, not final truth.
+- Platform memory and chat history are recall/evidence only.
+- Conflicts are resolved by checking source-of-truth files in the runtime root.
+- New durable memory must go through `remember -> recall -> improve -> forget`.
+
+Useful commands:
+
+```bash
+{memory_cmd} --root {root_arg} recall --query "<query>" --context-only
+{memory_cmd} --root {root_arg} remember --session-id "<session>" --text "<explicit user correction>"
+{memory_cmd} --root {root_arg} improve --session-id "<session>"
+{memory_cmd} --root {root_arg} forget --instruction "<user correction>"
+```
+
+Safety:
+
+- Never store or print secrets, API keys, tokens, webhook URLs, database URLs, private keys, raw sessions, customer data, account data, cookies, or passwords.
+- Do not read the full runtime by default.
+- Do not read project workspaces unless the task specifically requires the relevant source files.
+"""
+
+
+def write_agent_registry(root: Path, agent: str, target: Path, mode: str) -> None:
+    registry = root / "memory/agents/registry.json"
+    items = []
+    if registry.exists():
+        try:
+            loaded = json.loads(registry.read_text(encoding="utf-8"))
+            items = loaded.get("bridges", []) if isinstance(loaded, dict) else []
+        except json.JSONDecodeError:
+            items = []
+    record = {
+        "agent": agent,
+        "target": str(target),
+        "mode": mode,
+        "updated_at": now_iso(),
+        "source": "memory share",
+    }
+    items = [item for item in items if not (item.get("agent") == agent and item.get("target") == str(target))]
+    items.append(record)
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    registry.write_text(json.dumps({"bridges": items}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def guard_text(root: Path, text: str) -> list[memory_guard.Finding]:
     probe = runtime_root(root) / ".guard-probe.md"
     probe.parent.mkdir(parents=True, exist_ok=True)
@@ -407,6 +502,18 @@ Then answer:
 4. What must never be stored or printed?
 5. Which task-specific files would you read next only if needed?
 ```
+
+## Share This Runtime
+
+Generate pointer-only bridge files for Agent workspaces:
+
+```bash
+scripts/memory --root /path/to/this-runtime share --agent codex --workspace /path/to/project
+scripts/memory --root /path/to/this-runtime share --agent claude --workspace /path/to/project
+scripts/memory --root /path/to/this-runtime share --agent cursor --workspace /path/to/project
+```
+
+Bridge files point Agents back to this runtime. They do not copy user profile, project facts, hot memory, history, or session cache.
 """,
         "memory/hot/USER.md": f"""# USER
 
@@ -508,6 +615,12 @@ Internal compatibility directory. Users should not manage this manually. Use `me
 
 Internal audit directory for durable memory changes. Users correct summaries; Agents maintain files.
 """,
+        "memory/agents/README.md": """# Agent Bridges
+
+Use `memory share` to connect Codex, Claude Code, Cursor, or another local-file-reading Agent to this same runtime.
+
+Bridge files are pointers only. They must not duplicate user profile, hot memory, project facts, session cache, history, or deprecated audit.
+""",
     }
 
 
@@ -558,6 +671,45 @@ def command_init(args: argparse.Namespace) -> int:
     print("")
     print("Next Agent startup path:")
     print("AGENTS.md -> ONBOARDING.md -> memory/hot/USER.md -> memory/hot/MEMORY.md")
+    return 0
+
+
+def command_share(args: argparse.Namespace) -> int:
+    root = args.root
+    target = bridge_target_for(args.agent, args.workspace, args.target, root)
+    content = agent_bridge_text(root, args.agent)
+    findings = guard_text(root, content + "\n" + str(target))
+    if findings:
+        print(f"share_blocked: {findings[0].kind}")
+        return 1
+    if args.print_only:
+        print(content)
+        return 0
+    if target.exists() and not args.force and not args.append:
+        print("share_blocked: target exists")
+        print(str(target))
+        print("Use --append to add a bridge block or --force to overwrite.")
+        return 1
+    target.parent.mkdir(parents=True, exist_ok=True)
+    mode = "created"
+    if target.exists() and args.append:
+        existing = target.read_text(encoding="utf-8")
+        if "<!-- BEGIN AGENT MEMORY BRIDGE -->" in existing and not args.force:
+            print("share_blocked: bridge already present")
+            print(str(target))
+            return 1
+        text = existing.rstrip() + "\n\n<!-- BEGIN AGENT MEMORY BRIDGE -->\n" + content.rstrip() + "\n<!-- END AGENT MEMORY BRIDGE -->\n"
+        target.write_text(text, encoding="utf-8")
+        mode = "appended"
+    else:
+        target.write_text(content, encoding="utf-8")
+        mode = "overwritten" if args.force else "created"
+    write_agent_registry(root, args.agent, target, mode)
+    print("Shared memory bridge ready")
+    print(f"Agent: {args.agent}")
+    print(f"Target: {target}")
+    print(f"Runtime root: {root}")
+    print("Bridge is pointer-only; it does not copy long-term memory into the workspace.")
     return 0
 
 
@@ -934,6 +1086,14 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--interactive", action="store_true", help="Prompt for missing answers when stdin is a TTY.")
     init.add_argument("--force", action="store_true", help="Overwrite generated starter files if they already exist.")
 
+    share = sub.add_parser("share")
+    share.add_argument("--agent", choices=sorted(AGENT_BRIDGE_TARGETS), required=True)
+    share.add_argument("--workspace", type=Path, default=None, help="Workspace folder where the agent bridge should be written.")
+    share.add_argument("--target", type=Path, default=None, help="Explicit bridge file path. Overrides --workspace default.")
+    share.add_argument("--append", action="store_true", help="Append a marked bridge block to an existing target file.")
+    share.add_argument("--force", action="store_true", help="Overwrite an existing target file, or allow replacing an existing bridge block.")
+    share.add_argument("--print", dest="print_only", action="store_true", help="Print the bridge text instead of writing a file.")
+
     remember = sub.add_parser("remember")
     remember.add_argument("--session-id", default="default")
     remember.add_argument("--text", required=True)
@@ -963,6 +1123,8 @@ def main(argv: list[str]) -> int:
     args.root = args.root.resolve()
     if args.command == "init":
         return command_init(args)
+    if args.command == "share":
+        return command_share(args)
     if args.command == "remember":
         return command_remember(args)
     if args.command == "recall":

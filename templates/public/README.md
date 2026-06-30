@@ -12,4 +12,12 @@ For a real user, prefer the Agent-led first-run wizard in `docs/first-run-wizard
 remember -> recall -> improve -> forget
 ```
 
+Share this same runtime with Agent workspaces through pointer-only bridge files:
+
+```bash
+scripts/memory --root ./my-agent-memory share --agent codex --workspace ./my-project
+scripts/memory --root ./my-agent-memory share --agent claude --workspace ./my-project
+scripts/memory --root ./my-agent-memory share --agent cursor --workspace ./my-project
+```
+
 Before publishing this starter kit, keep private runtime data out of this directory. Only fake users, fake projects, and fake paths belong here.
