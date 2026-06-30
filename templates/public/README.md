@@ -6,7 +6,9 @@ Use this template as a demo fixture with the CLI initializer:
 scripts/memory --root ./my-agent-memory init --answers templates/public/answers.example.json
 ```
 
-For a real user, prefer the Agent-led first-run wizard in `docs/first-run-wizard.md`. The user should not hand-write Markdown files. The CLI creates the starter runtime, then Agents maintain it through:
+For a real user, prefer the Agent-led first-run wizard in `docs/first-run-wizard.md`. The first question should identify whether the user is new or wants to share an existing memory runtime with another Agent/workspace. The user should not hand-write Markdown files.
+
+If the user is new, the CLI creates the starter runtime. Then Agents maintain it through:
 
 ```text
 remember -> recall -> improve -> forget

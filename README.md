@@ -32,7 +32,14 @@ cd agent-memory-starter-kit
 
 For a real user, start with the Agent-led first-run wizard. Copy the prompt from `docs/first-run-wizard.md` into Codex, Claude Code, Cursor, or another local-file-reading Agent.
 
-The Agent should ask one question at a time, help the user answer, then run `scripts/memory init` with the user's own answers. The user should not hand-write Markdown.
+The Agent first identifies the user's path:
+
+```text
+new setup -> ask onboarding questions -> run scripts/memory init
+share existing runtime -> ask runtime/workspace questions -> run scripts/memory share
+```
+
+The user should not hand-write Markdown.
 
 Example generated command:
 
@@ -51,7 +58,7 @@ scripts/memory --root ./my-agent-memory init \
 
 The CLI creates a working starter runtime. `templates/public/answers.example.json` is a demo fixture for tests and non-interactive examples, not the default real-user onboarding path.
 
-Share the same runtime with another Agent or workspace:
+If the user already has a memory runtime, share it with another Agent or workspace:
 
 ```bash
 scripts/memory --root ./my-agent-memory share --agent codex --workspace ./my-project
@@ -87,7 +94,13 @@ memory/promotions/README.md
 
 ## First-Run Wizard
 
-The onboarding flow asks one question at a time:
+The onboarding flow starts by asking whether the user is new or sharing an existing runtime:
+
+```text
+Are you setting up Agent Memory for the first time, or connecting an existing memory runtime to another Agent/workspace?
+```
+
+If the user is new, ask one question at a time:
 
 1. What should Agents call you?
 2. What language should Agents use by default?

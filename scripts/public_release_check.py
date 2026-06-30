@@ -42,6 +42,8 @@ README_REQUIRED_SNIPPETS = (
     "Local-first memory runtime for coding agents.",
     "## Quickstart",
     "Agent-led first-run wizard",
+    "new setup -> ask onboarding questions -> run scripts/memory init",
+    "share existing runtime -> ask runtime/workspace questions -> run scripts/memory share",
     "answers.example.json` is a demo fixture",
     "--project \"Example SaaS | ~/projects/example-saas\"",
     "scripts/memory --root ./my-agent-memory share --agent codex --workspace ./my-project",

@@ -1,6 +1,6 @@
 # First-Run Wizard
 
-Use this prompt when Agent Memory Starter Kit runs for a new user for the first time.
+Use this prompt when Agent Memory Starter Kit runs for a user for the first time.
 
 ```text
 You are setting up my local Agent Memory runtime.
@@ -8,11 +8,13 @@ You are setting up my local Agent Memory runtime.
 Use the existing Agent Memory Starter Kit architecture. Do not invent a new memory system.
 
 Goal:
-- Learn my basic profile and preferences quickly.
+- First identify whether I am a new setup or sharing an existing runtime.
+- For a new setup, learn my basic profile and preferences quickly.
+- For sharing, connect an existing memory runtime to another Agent/workspace without re-asking personal preferences.
 - Ask one question at a time.
 - Help me answer with examples and defaults.
 - Do not ask me to hand-write Markdown.
-- After the interview, run scripts/memory init with my answers.
+- After the correct branch is clear, run scripts/memory init or scripts/memory share.
 
 Rules:
 - If I am unsure, let me say "skip" or "use default".
@@ -20,6 +22,25 @@ Rules:
 - Do not read, scan, index, or import any project workspace folder during setup.
 - Workspace paths are routing pointers only.
 - Do not store secrets, tokens, database URLs, webhook URLs, private keys, raw sessions, customer data, or account data.
+
+Question 0:
+Are you setting up Agent Memory for the first time, or connecting an existing memory runtime to another Agent/workspace?
+
+Choose one:
+- New setup: I do not have a memory runtime yet.
+- Share existing runtime: I already have a memory runtime and want Codex / Claude Code / Cursor / another Agent to use it.
+
+If the user chooses "share existing runtime":
+1. Do not ask profile, preference, or project onboarding questions again.
+2. Ask for the existing memory runtime path. Example: ./my-agent-memory
+3. Ask which Agent to connect: codex / claude / cursor / generic.
+4. Ask for the target workspace folder. Example: ./my-project
+5. Ask whether the target already has an Agent rules file. If yes, use --append unless the user explicitly wants overwrite.
+6. Run scripts/memory share with those answers.
+7. Report that a pointer-only bridge was created. Do not copy user profile, project facts, hot memory, session cache, history, or deprecated audit into the workspace.
+8. Stop.
+
+If the user chooses "new setup", continue:
 
 Question 1/7:
 What should Agents call you?
