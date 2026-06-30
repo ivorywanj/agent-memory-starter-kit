@@ -31,6 +31,18 @@ REQUIRED_FILES = (
     "scripts/public_release_check.py",
     "tests/test_public_package.py",
     "templates/public/answers.example.json",
+    "docs/releases/v0.1.1.md",
+)
+README_REQUIRED_SNIPPETS = (
+    "Local-first memory runtime for coding agents.",
+    "## Quickstart",
+    "scripts/memory --root ./my-agent-memory init --answers templates/public/answers.example.json",
+    "## Memory Loop",
+    "init -> remember -> recall -> improve -> forget",
+    "## Safety",
+    "## Validation",
+    "## Benchmark Evidence",
+    "## V1 Limits",
 )
 
 
@@ -48,6 +60,12 @@ def main() -> int:
     for rel in REQUIRED_FILES:
         if not (ROOT / rel).exists():
             findings.append(f"missing required file: {rel}")
+    readme = ROOT / "README.md"
+    if readme.exists():
+        readme_text = readme.read_text(encoding="utf-8", errors="replace")
+        for snippet in README_REQUIRED_SNIPPETS:
+            if snippet not in readme_text:
+                findings.append(f"README.md missing snippet: {snippet}")
     for path in iter_text_files():
         rel = path.relative_to(ROOT)
         text = path.read_text(encoding="utf-8", errors="replace")
