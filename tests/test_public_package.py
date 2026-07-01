@@ -40,6 +40,33 @@ def assert_no_user_first_screen_terms(text: str) -> None:
         assert term not in lowered, f"unexpected internal term: {term}"
 
 
+def assert_entry_response_style_rules(text: str) -> None:
+    lowered = text.lower()
+    required = (
+        "ask exactly one question at a time",
+        "do not show internal analysis",
+        "do not ask where to store the memory library",
+        "first ask whether the user already has a memory library on this computer",
+        "for same-machine sharing, say no import is needed",
+        "a confident memory library candidate must contain",
+        "say this will create a zip backup",
+        "ask where to save the zip backup",
+        "use the default backup folder",
+    )
+    blocked = (
+        "the repo is cloned",
+        "i need to run the setup wizard",
+        "i will create an answers file",
+        "since the script is interactive",
+        "non-interactive setup",
+        "use sensible defaults",
+    )
+    for snippet in required:
+        assert snippet in lowered, f"missing response style rule: {snippet}"
+    for snippet in blocked:
+        assert snippet not in lowered, f"noisy setup phrase leaked into helper: {snippet}"
+
+
 def test_init_creates_public_runtime() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp) / "library"
@@ -117,10 +144,13 @@ def test_init_creates_public_runtime() -> None:
 def test_memory_shortcuts_and_backup_zip() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         menu = run("scripts/memory")
-        assert "1. memory - Show this menu" in menu.stdout
-        assert "2. memory new - Create a memory library" in menu.stdout
-        assert "3. memory connect - Connect this Agent" in menu.stdout
-        assert "4. memory backup - Back up a memory library" in menu.stdout
+        assert "1. memory new - Create a memory library" in menu.stdout
+        assert "2. memory connect - Connect this Agent to an existing memory library" in menu.stdout
+        assert "Other command:" in menu.stdout
+        assert "- memory backup - Back up a memory library" in menu.stdout
+        assert "3. memory backup" not in menu.stdout
+        assert "4. memory backup" not in menu.stdout
+        assert "memory - Show this menu" not in menu.stdout
         assert "/memory new" in menu.stdout
         assert "/memory connect" in menu.stdout
         assert "/memory backup" in menu.stdout
@@ -272,6 +302,7 @@ def test_memory_install_writes_agent_shortcuts() -> None:
     assert "scripts/memory" in texts
     assert "--root" in texts
     assert "Do not ask the user to hand-edit memory files" in texts
+    assert_entry_response_style_rules(texts)
     assert duplicate.returncode == 1
     assert "install_blocked: target exists" in duplicate.stdout
     assert "Memory shortcuts installed" in forced.stdout

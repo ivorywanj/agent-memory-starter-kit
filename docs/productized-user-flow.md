@@ -4,7 +4,7 @@ This document defines the simple user flow and measurable acceptance criteria fo
 
 ## Goal
 
-Users should be able to open the menu, start, connect, and back up memory through four quick entries:
+Users should be able to open the first-use menu and choose between creating a memory library or connecting this Agent to an existing memory library. Backup remains a separate command, not a first-use branch.
 
 ```text
 memory
@@ -73,10 +73,14 @@ memory connect
 Flow:
 
 1. Do not ask profile or preference questions again.
-2. Detect the current Agent when possible.
-3. Locate an existing memory library or ask for a folder/backup zip only if needed.
-4. Write a small connection file into the Agent workspace.
-5. Report what was connected.
+2. Ask whether the user already has a memory library on this computer.
+3. Detect the current Agent when possible.
+4. A confident local memory library candidate must contain `AGENTS.md`, `ONBOARDING.md`, `memory/hot/USER.md`, and `memory/hot/MEMORY.md`.
+5. If exactly one confident local candidate exists, connect automatically.
+6. If none or multiple exist, ask for the memory library folder path.
+7. If no local memory library exists, ask for a memory backup file or memory library folder from another computer, or guide the user to `memory new`.
+8. Write a small connection file into the Agent workspace.
+9. Report what was connected.
 
 ### 3. Backup
 
@@ -89,19 +93,20 @@ memory backup
 Flow:
 
 1. Run safety scan.
-2. Create a zip backup.
-3. Exclude unsafe or temporary files.
-4. Report the zip path.
+2. Ask where to save the zip backup. The user can also say "use the default backup folder".
+3. Create a zip backup.
+4. Exclude unsafe or temporary files.
+5. Report the zip path.
 
 ## Quantitative Acceptance Criteria
 
 | ID | Area | Pass Criteria | Automated Evidence |
 |---|---|---|---|
-| T21 | Quick entry | `/memory` or `scripts/memory` shows exactly 4 quick entries. Blocked internal terms on the first screen = 0. | `tests/test_public_package.py::test_memory_shortcuts_and_backup_zip` |
+| T21 | Quick entry | `/memory` or `scripts/memory` shows exactly 2 first-use choices: create new or connect existing. Backup is available separately, not as a main first-use branch. Blocked internal terms on the first screen = 0. | `tests/test_public_package.py::test_memory_shortcuts_and_backup_zip` |
 | T22 | Shortcut install | `scripts/memory install --agent all` writes Codex, Claude Code, Cursor, and generic helpers. Duplicate install blocks unless `--force` is used. | `tests/test_public_package.py::test_memory_install_writes_agent_shortcuts` |
 | T23 | New setup | Setup creates required files, asks no storage-location question, requires no manual memory-file editing, and blocks secret-shaped answers. | `tests/test_public_package.py::test_init_creates_public_runtime` and `test_init_blocks_secret_shaped_answers` |
-| T24 | Cross-Agent connect | Agent detection succeeds when an Agent marker is provided. Connection file is created. Copied profile/project facts/secrets = 0. | `tests/test_public_package.py::test_init_creates_public_runtime` |
-| T25 | Backup | Zip is created. Excluded categories are absent from zip: `.env*`, temporary dialogue data, search indexes, drafts, and local database files. | `tests/test_public_package.py::test_memory_shortcuts_and_backup_zip` |
+| T24 | Cross-Agent connect | Connect starts by asking whether a local memory library exists, only trusts candidates with the expected starter files, and creates a pointer-only connection. Copied profile/project facts/secrets = 0. | `tests/test_public_package.py::test_init_creates_public_runtime` |
+| T25 | Backup | Backup asks where to save the zip, accepts the default backup folder wording, and excludes `.env*`, temporary dialogue data, search indexes, drafts, and local database files. | `tests/test_public_package.py::test_memory_shortcuts_and_backup_zip` |
 | T26 | Low-terminology first screen | README first screen blocked internal terms = 0. Required user shortcuts are present. | `scripts/public_release_check.py` |
 | T27 | Public package release gate | Public fixture tests, memory guard, release check, and diff check all pass. | CI and local validation commands |
 

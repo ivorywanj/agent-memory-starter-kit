@@ -31,10 +31,11 @@ The Agent should show:
 
 ```text
 What do you want to do?
-1. memory - Show this menu
-2. memory new - Create a memory library
-3. memory connect - Connect this Agent
-4. memory backup - Back up a memory library
+1. memory new - Create a memory library
+2. memory connect - Connect this Agent to an existing memory library
+
+Other command:
+- memory backup - Back up a memory library
 ```
 
 You can then type:
@@ -42,6 +43,11 @@ You can then type:
 ```text
 memory new
 memory connect
+```
+
+Backup is a separate command:
+
+```text
 memory backup
 ```
 
@@ -66,7 +72,7 @@ Fallback for troubleshooting only:
 ./scripts/memory backup
 ```
 
-For first-time setup, the Agent should not ask where to store the files. It creates a default memory library and helps you correct the summary afterward.
+For first-time setup, the Agent should not explain setup internals or ask where to store the files. It should ask one question at a time and only show the next useful question.
 
 For connecting another Agent, the Agent should already know which tool you are using. It only asks you to choose Codex, Claude Code, Cursor, or Generic if it cannot identify the current Agent.
 
@@ -97,21 +103,24 @@ There is no background service, hosted backend, vector database, graph database,
 
 ## First-Run Wizard
 
-The onboarding flow starts by identifying the user's intent:
+The onboarding flow starts by identifying the user's first-use intent:
 
 ```text
-Are you new to Agent Memory, or do you want to connect this Agent to an existing memory library?
+Do you want to create a new memory library, or connect this Agent to an existing memory library?
 ```
 
-If the user is new, ask one question at a time:
+If the user is new, the first visible setup response should be:
 
-1. What should Agents call you?
-2. What language should Agents use by default?
-3. What kind of work do you do?
-4. What are your current 1-3 projects? If a project has a workspace folder, include it.
-5. How should Agents communicate with you?
-6. Which actions require confirmation?
-7. What must never be stored in memory?
+```text
+I will help you create your memory library.
+
+First question:
+What should Agents call you?
+For example: Alex, Sam, or your real name.
+```
+
+Then ask one next question after each user answer. Do not show the full questionnaire upfront.
+Do not ask where to store the memory library during `memory new`; use the default location.
 
 Project workspaces are routing hints, not ingestion permission. The setup records the folder pointer and whether it existed at setup time, but it does not read, scan, index, or import the folder.
 
@@ -119,12 +128,12 @@ Project workspaces are routing hints, not ingestion permission. The setup record
 
 See `docs/productized-user-flow.md` for the user-flow design and measurable acceptance criteria. The core gates are:
 
-- `memory` shows exactly four quick entries.
+- `memory` shows exactly two first-use choices: create a new memory library or connect this Agent to an existing memory library.
 - `scripts/memory install --agent all` writes a shared `memory` shell command plus Codex, Claude Code, Cursor, and generic command helpers.
 - Codex install writes a local plugin package and enables it in `~/.codex/config.toml`.
 - `memory new` asks no more than seven setup questions, plus an optional project-folder follow-up.
-- `memory connect` does not re-ask profile questions and auto-detects the current Agent when possible.
-- `memory backup` creates a zip and excludes unsafe or temporary files.
+- `memory connect` starts by asking whether a local memory library already exists, then connects by pointer without import when possible.
+- `memory backup` asks where to save a zip backup, allows the default backup folder, and excludes unsafe or temporary files.
 - User-facing first screens contain zero blocked internal terms.
 
 ## Sharing Across Agents
@@ -132,6 +141,10 @@ See `docs/productized-user-flow.md` for the user-flow design and measurable acce
 Use `memory connect` when Codex, TRAE Work, Claude Code, Cursor, or another Agent should use the same memory library on the same machine.
 
 The command writes a small connection file into the target Agent workspace. It points back to the same memory library instead of copying user profile, project facts, hot memory, history, or audit records into each Agent.
+
+For same-machine sharing, no import is needed. The Agent should not describe this as migration or copying.
+
+The Agent first asks: "Do you already have a memory library on this computer?" If yes, it only treats a folder as a confident match when it contains `AGENTS.md`, `ONBOARDING.md`, `memory/hot/USER.md`, and `memory/hot/MEMORY.md`. It should not broadly scan unrelated user folders. If no local memory library exists, provide a memory backup file, a memory library folder from another computer, or create a new memory library.
 
 Default connection targets:
 
@@ -146,7 +159,11 @@ Default connection targets:
 
 Use `memory backup` to create a zip backup.
 
+The Agent asks where to save the zip. You can also say "use the default backup folder".
+
 The backup excludes secrets, temporary dialogue data, search indexes, raw runs, generated drafts, and local database files.
+
+Backup does not connect, import, restore, switch, or initialize a memory library.
 
 ## Developer Commands
 

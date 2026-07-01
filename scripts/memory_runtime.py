@@ -452,10 +452,10 @@ Use these shortcuts when the user asks for Agent Memory setup, connection, or ba
 
 Stable text entry for all Agents:
 
-- `memory`: show the menu.
+- `memory`: show the first-use menu with two choices: create a new memory library or connect this Agent to an existing memory library.
 - `memory new`: create a memory library for a new user. Ask one guided question at a time.
 - `memory connect`: connect this Agent to an existing memory library.
-- `memory backup`: create a zip backup.
+- `memory backup`: create a zip backup. This is an available command, not a main first-use branch.
 
 Slash-capable Agents may also support:
 
@@ -465,6 +465,49 @@ Slash-capable Agents may also support:
 - `/memory backup`: create a zip backup.
 
 Some Agents may not show custom slash commands in their command picker. Treat `memory`, `memory new`, `memory connect`, and `memory backup` as the reliable entry points and run the matching command below.
+
+## Response Style
+
+Keep the visible response short and user-facing. Do not show internal analysis, setup strategy, repository status, implementation notes, temporary answer-file strategy, batch setup details, or a full questionnaire.
+
+Forbidden visible patterns:
+
+- Repository/setup progress narration.
+- Temporary answer-file or batch setup strategy.
+- A full list of all setup questions before the first answer.
+- A default-vs-manual setup choice.
+- Instructions to manually edit memory files.
+
+For `memory new`:
+
+- Start by saying you will help create the memory library.
+- Ask exactly one question at a time.
+- First question: "What should Agents call you?"
+- Do not ask where to store the memory library; use the default location.
+- Include 1 to 3 short examples when helpful.
+- Wait for the user's answer before asking the next question.
+
+For `memory connect`:
+
+- Say this will connect the current Agent to an existing memory library.
+- First ask whether the user already has a memory library on this computer.
+- For same-machine sharing, say no import is needed.
+- Detection rule: a confident memory library candidate must contain `AGENTS.md`, `ONBOARDING.md`, `memory/hot/USER.md`, and `memory/hot/MEMORY.md`.
+- Detection order: check the installed `memory` helper's configured path if available, then the current workspace connection file, then explicit helper/workspace paths. Do not broadly scan unrelated user folders.
+- If exactly one confident local candidate is found, connect automatically. If none or multiple are found, ask for the memory library folder path.
+- If the user does not have a local memory library, ask for a memory backup file or memory library folder from another computer, or guide them to `memory new`.
+- Ask for only one missing input at a time.
+- Do not say the memory will be imported, migrated, or copied into this Agent workspace.
+- End with a short connection summary.
+
+For `memory backup`:
+
+- Say this will create a zip backup.
+- Ask for only one missing input at a time.
+- Do not ask which memory library to back up when the current installed memory library is known.
+- If a question is needed, ask where to save the zip backup. You can say: "You can also say 'use the default backup folder'."
+- Do not say backup connects, imports, restores, switches, or initializes a memory library.
+- End with the backup file path and what was excluded.
 
 ## Commands To Run
 
@@ -533,8 +576,8 @@ Route the request exactly:
 - `connect`: run `{memory_cmd} --root {root_arg} connect`.
 - `backup`: run `{memory_cmd} --root {root_arg} backup`.
 
-If arguments are unclear, show the four choices and do not invent another command.
-Guide the user one question at a time. Do not ask the user to hand-edit memory files. Do not store or print secrets.
+If arguments are unclear, show the two first-use choices (`memory new` and `memory connect`) and mention `memory backup` as a separate available command. Do not invent another command.
+Follow the response style rules in the Agent Memory skill/helper text. Do not expose internal setup steps. Do not ask the user to hand-edit memory files. Do not store or print secrets.
 """
 
     command_map = {
@@ -562,7 +605,13 @@ Run this command:
 {command_map[command]}
 ```
 
-Guide the user one question at a time. Do not ask the user to hand-edit memory files. Do not store or print secrets.
+Follow the response style rules in the Agent Memory skill/helper text:
+
+- `memory new`: ask exactly one question at a time and do not show internal setup steps.
+- `memory connect`: first ask whether the user already has a memory library on this computer; say same-machine sharing needs no import; do not describe migration or copying.
+- `memory backup`: say it creates a zip backup; ask where to save it and say the user can use the default backup folder; do not mix backup with connect, import, restore, switch, or initialization.
+
+Do not ask the user to hand-edit memory files. Do not store or print secrets.
 """
 
 
@@ -629,7 +678,13 @@ Run:
 {command_map[command]}
 ```
 
-Guide the user one question at a time. Do not ask them to hand-edit memory files. Do not store or print secrets.
+Follow the response style rules in the Agent Memory command helper:
+
+- `memory new`: ask exactly one question at a time and do not show internal setup steps.
+- `memory connect`: first ask whether the user already has a memory library on this computer; say same-machine sharing needs no import; do not describe migration or copying.
+- `memory backup`: say it creates a zip backup; ask where to save it and say the user can use the default backup folder; do not mix backup with connect, import, restore, switch, or initialization.
+
+Do not ask the user to hand-edit memory files. Do not store or print secrets.
 """
 
 
@@ -1215,10 +1270,11 @@ def command_start(args: argparse.Namespace) -> int:
 
 def print_memory_menu() -> None:
     print("What do you want to do?")
-    print("1. memory - Show this menu")
-    print("2. memory new - Create a memory library")
-    print("3. memory connect - Connect this Agent")
-    print("4. memory backup - Back up a memory library")
+    print("1. memory new - Create a memory library")
+    print("2. memory connect - Connect this Agent to an existing memory library")
+    print("")
+    print("Other command:")
+    print("- memory backup - Back up a memory library")
     print("")
     print("Slash-capable Agents may also support:")
     print("- /memory")
@@ -1744,7 +1800,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--force", action="store_true", help="Overwrite generated starter files if they already exist.")
 
     new = sub.add_parser("new")
-    new.add_argument("--answers", type=Path, default=None, help="JSON answers for non-interactive setup.")
+    new.add_argument("--answers", type=Path, default=None, help="JSON answers for tests or automation.")
     new.add_argument("--name", default=None)
     new.add_argument("--language", default=None)
     new.add_argument("--work-type", default=None)

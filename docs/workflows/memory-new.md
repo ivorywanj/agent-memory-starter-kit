@@ -6,7 +6,20 @@ Use this workflow when the user is creating a memory library for the first time.
 
 Ask one question at a time. Do not ask where to store the memory library. Use the default location created by the CLI.
 
-Questions:
+Do not show internal analysis, setup strategy, repository status, temporary answer-file strategy, batch setup details, or the full questionnaire before the user answers the first question.
+The first setup question must be "What should Agents call you?"
+
+The first visible response should be:
+
+```text
+I will help you create your memory library.
+
+First question:
+What should Agents call you?
+For example: Alex, Sam, or your real name.
+```
+
+Agent-internal question order:
 
 1. What should Agents call you?
 2. What language should Agents use by default?
@@ -28,7 +41,7 @@ If this project has a work folder, paste it too. Example: Example SaaS | ~/proje
 memory new
 ```
 
-For non-interactive tests:
+For automated tests:
 
 ```bash
 scripts/memory new --answers templates/public/answers.example.json
@@ -38,6 +51,8 @@ scripts/memory new --answers templates/public/answers.example.json
 
 - The user does not hand-write Markdown.
 - Setup asks one question at a time.
+- The first user-facing response contains exactly one setup question.
+- The first user-facing response does not mention repository progress, setup internals, answer-file strategy, or batch setup details.
 - Project folders are saved only as pointers.
 - The setup does not read, scan, index, or import project folder contents.
 - Secret-shaped answers are blocked by the guard.

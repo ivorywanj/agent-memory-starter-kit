@@ -8,19 +8,22 @@ You are setting up my local Agent Memory library.
 Use the existing Agent Memory Starter Kit architecture. Do not invent a new memory system.
 
 Goal:
-- First identify whether I am new, connecting this Agent to an existing memory library, or creating a backup.
+- First identify whether I want to create a new memory library or connect this Agent to an existing memory library.
 - For a new setup, learn my basic profile and preferences quickly.
 - For connecting, link this Agent to an existing memory library without re-asking personal preferences.
-- For backup, create a zip and do not change memory content.
+- If I explicitly ask for backup, create a zip and do not change memory content.
 - Ask one question at a time.
 - Help me answer with examples and defaults.
 - Do not ask me to hand-write Markdown.
 - Do not ask where to store the memory library during new setup. Use the default.
-- After the correct branch is clear, run memory new, memory connect, or memory backup.
+- For new setup, the first setup question must be: "What should Agents call you?"
+- After the correct branch is clear, run memory new or memory connect. Run memory backup only when I explicitly ask for backup.
 
 Rules:
 - If I am unsure, let me say "skip" or "use default".
 - Do not ask all questions at once.
+- Do not show your internal analysis, setup strategy, repository status, or implementation notes.
+- Do not mention temporary answer-file strategy, batch setup details, or generated-file strategy in user-facing replies.
 - Do not read, scan, index, or import any project workspace folder during setup.
 - Workspace paths are routing pointers only.
 - Do not store secrets, tokens, database URLs, webhook URLs, private keys, raw sessions, customer data, or account data.
@@ -31,24 +34,32 @@ What do you want to do?
 Choose one:
 - 1. Create a memory library
 - 2. Connect this Agent
-- 3. Back up a memory library
 
 If the user chooses 2, "connect", "memory connect", or "/memory connect":
 1. Do not ask profile, preference, or project onboarding questions again.
-2. Try to find an existing memory library in the current folder or common nearby folder first.
-3. If no memory library is found, ask the user to provide the folder or a backup zip from another computer.
-4. Detect the current Agent automatically. Only ask codex / claude / cursor / generic if detection fails.
-5. Ask for the project workspace folder only if it is not already the current workspace.
-6. If the target already has an Agent rules file, use --append unless the user explicitly wants overwrite.
-7. Run memory connect with those answers.
-8. Report that a connection file was created. Do not copy user profile, project facts, hot memory, observed memory, history, or audit records into the workspace.
-9. Stop.
+2. Say: "I will connect this Agent to your existing memory library."
+3. First ask: "Do you already have a memory library on this computer?"
+4. For same-machine sharing, say no import is needed.
+5. Detection rule: a confident memory library candidate must contain `AGENTS.md`, `ONBOARDING.md`, `memory/hot/USER.md`, and `memory/hot/MEMORY.md`.
+6. Detection order: check the installed `memory` helper's configured path if available, then the current workspace connection file, then explicit helper/workspace paths. Do not broadly scan unrelated user folders.
+7. If exactly one confident local candidate is found, connect automatically. If no candidate or multiple candidates are found, ask the user for the memory library folder path.
+8. If the user says there is no local memory library, ask for a memory backup file or memory library folder from another computer, or guide them to `memory new`.
+9. Detect the current Agent automatically. Only ask codex / claude / cursor / generic if detection fails.
+10. Ask for the project workspace folder only if it is not already the current workspace.
+11. If the target already has an Agent rules file, use --append unless the user explicitly wants overwrite.
+12. Run memory connect with those answers.
+13. Report that a connection file was created. Do not copy user profile, project facts, hot memory, observed memory, history, or audit records into the workspace.
+14. Stop.
 
-If the user chooses 3, "backup", "memory backup", or "/memory backup":
-1. Run memory backup.
-2. Report the generated zip file path.
-3. Explain that secrets, temporary dialogue data, search indexes, raw runs, drafts, and local database files were excluded.
-4. Stop.
+If the user explicitly asks for "backup", "memory backup", or "/memory backup":
+1. Say: "I will create a zip backup of your memory library."
+2. Do not ask which memory library to back up when the current installed memory library is known.
+3. If a question is needed, ask only where to save the zip. You can also say: "use the default backup folder".
+4. Run memory backup.
+5. Report the generated zip file path.
+6. Explain that secrets, temporary dialogue data, search indexes, raw runs, drafts, and local database files were excluded.
+7. Do not say backup connects, imports, restores, switches, or initializes a memory library.
+8. Stop.
 
 If the user chooses 1, "new", "memory new", or "/memory new", continue:
 
