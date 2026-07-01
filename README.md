@@ -13,18 +13,27 @@ git clone https://github.com/ivorywanj/agent-memory-starter-kit.git
 cd agent-memory-starter-kit
 ```
 
-Open Codex, Claude Code, Cursor, or another Agent that can read project files and send:
+Open Codex, Claude Code, Cursor, or another Agent that can read project files.
+
+If your Agent recognizes `/memory`, send:
 
 ```text
 /memory
 ```
 
-The Agent should show three choices:
+If `/memory` does not appear in your Agent UI yet, ask the Agent to run:
+
+```bash
+scripts/memory
+```
+
+The menu should show four quick entries:
 
 ```text
-1. Create a memory library
-2. Connect this Agent
-3. Back up a memory library
+1. /memory - Show this menu
+2. /memory new - Create a memory library
+3. /memory connect - Connect this Agent
+4. /memory backup - Back up a memory library
 ```
 
 You can also go directly:
@@ -96,7 +105,7 @@ Project workspaces are routing hints, not ingestion permission. The setup record
 
 See `docs/productized-user-flow.md` for the user-flow design and measurable acceptance criteria. The core gates are:
 
-- `/memory` shows exactly three choices.
+- `/memory` or `scripts/memory` shows exactly four quick entries.
 - `/memory new` asks no more than seven setup questions, plus an optional project-folder follow-up.
 - `/memory connect` does not re-ask profile questions and auto-detects the current Agent when possible.
 - `/memory backup` creates a zip and excludes unsafe or temporary files.

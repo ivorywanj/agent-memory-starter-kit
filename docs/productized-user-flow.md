@@ -4,15 +4,18 @@ This document defines the simple user flow and measurable acceptance criteria fo
 
 ## Goal
 
-Users should be able to start, connect, and back up memory through three commands:
+Users should be able to open the menu, start, connect, and back up memory through four quick entries:
 
 ```text
+/memory
 /memory new
 /memory connect
 /memory backup
 ```
 
 The Agent handles setup steps. The user answers guided questions and corrects the summary if needed.
+
+If the Agent UI does not recognize `/memory`, the Agent should run `scripts/memory` and show the same four entries.
 
 ## User Flow
 
@@ -71,7 +74,7 @@ Flow:
 
 | ID | Area | Pass Criteria | Automated Evidence |
 |---|---|---|---|
-| T21 | Quick entry | `/memory` shows exactly 3 choices and all three direct shortcuts. Blocked internal terms on the first screen = 0. | `tests/test_public_package.py::test_memory_shortcuts_and_backup_zip` |
+| T21 | Quick entry | `/memory` or `scripts/memory` shows exactly 4 quick entries. Blocked internal terms on the first screen = 0. | `tests/test_public_package.py::test_memory_shortcuts_and_backup_zip` |
 | T22 | New setup | Setup creates required files, asks no storage-location question, requires no manual memory-file editing, and blocks secret-shaped answers. | `tests/test_public_package.py::test_init_creates_public_runtime` and `test_init_blocks_secret_shaped_answers` |
 | T23 | Cross-Agent connect | Agent detection succeeds when an Agent marker is provided. Connection file is created. Copied profile/project facts/secrets = 0. | `tests/test_public_package.py::test_init_creates_public_runtime` |
 | T24 | Backup | Zip is created. Excluded categories are absent from zip: `.env*`, temporary dialogue data, search indexes, drafts, and local database files. | `tests/test_public_package.py::test_memory_shortcuts_and_backup_zip` |

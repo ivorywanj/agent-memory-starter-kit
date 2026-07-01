@@ -116,12 +116,14 @@ def test_init_creates_public_runtime() -> None:
 def test_memory_shortcuts_and_backup_zip() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         menu = run("scripts/memory")
-        assert "1. Create a memory library" in menu.stdout
-        assert "2. Connect this Agent" in menu.stdout
-        assert "3. Back up a memory library" in menu.stdout
+        assert "1. /memory - Show this menu" in menu.stdout
+        assert "2. /memory new - Create a memory library" in menu.stdout
+        assert "3. /memory connect - Connect this Agent" in menu.stdout
+        assert "4. /memory backup - Back up a memory library" in menu.stdout
         assert "/memory new" in menu.stdout
         assert "/memory connect" in menu.stdout
         assert "/memory backup" in menu.stdout
+        assert "scripts/memory" in menu.stdout
         assert_no_user_first_screen_terms(menu.stdout)
 
         root = Path(tmp) / "library"
