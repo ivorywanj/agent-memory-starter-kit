@@ -16,16 +16,19 @@ scripts/memory install --agent all --workspace ./my-project
 
 | Agent | Helper file |
 |---|---|
-| Codex | user-level Agent Memory skill |
+| Codex | `memory` shell shortcut, local plugin package, and user-level Agent Memory skill |
 | Claude Code | project command files |
 | Cursor | project rule helper |
 | Generic Agent | project command helper |
 
-Native slash menus vary by Agent. If `/memory` still does not appear, ask the Agent to read the installed helper file and run the matching command.
+Native slash menus vary by Agent. In Codex, use the text shortcuts `memory`, `memory new`, `memory connect`, and `memory backup`; current Codex versions may not show custom plugin commands in the slash picker. For slash-capable Agents, `/memory`, `/memory new`, `/memory connect`, and `/memory backup` remain the intended shortcuts.
+
+Best-effort alias command files such as `/memory-new`, `/memory-connect`, and `/memory-backup` are also installed for Agents that expose plugin commands.
 
 ## Pass Criteria
 
-- Codex, Claude Code, Cursor, and generic helper files are written.
+- Codex local plugin package, Claude Code command files, Cursor rule, and generic helper files are written.
+- Codex `memory` shell shortcut is executable.
 - Duplicate install blocks unless `--force` is used.
 - Helper files include `/memory`, `/memory new`, `/memory connect`, and `/memory backup`.
 - Helper files do not copy profile details, project facts, history, or secrets.

@@ -116,14 +116,14 @@ def test_init_creates_public_runtime() -> None:
 def test_memory_shortcuts_and_backup_zip() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         menu = run("scripts/memory")
-        assert "1. /memory - Show this menu" in menu.stdout
-        assert "2. /memory new - Create a memory library" in menu.stdout
-        assert "3. /memory connect - Connect this Agent" in menu.stdout
-        assert "4. /memory backup - Back up a memory library" in menu.stdout
+        assert "1. memory - Show this menu" in menu.stdout
+        assert "2. memory new - Create a memory library" in menu.stdout
+        assert "3. memory connect - Connect this Agent" in menu.stdout
+        assert "4. memory backup - Back up a memory library" in menu.stdout
         assert "/memory new" in menu.stdout
         assert "/memory connect" in menu.stdout
         assert "/memory backup" in menu.stdout
-        assert "scripts/memory" in menu.stdout
+        assert "Slash-capable Agents may also support:" in menu.stdout
         assert_no_user_first_screen_terms(menu.stdout)
 
         root = Path(tmp) / "library"
@@ -174,7 +174,16 @@ def test_memory_install_writes_agent_shortcuts() -> None:
             str(home),
         )
         expected = [
+            home / ".codex/config.toml",
             home / ".codex/skills/agent-memory/SKILL.md",
+            home / ".local/bin/memory",
+            home / ".codex/agent-memory-starter-kit-marketplace/.claude-plugin/marketplace.json",
+            home / ".codex/agent-memory-starter-kit-marketplace/plugins/agent-memory-starter-kit/.codex-plugin/plugin.json",
+            home / ".codex/agent-memory-starter-kit-marketplace/plugins/agent-memory-starter-kit/skills/agent-memory/SKILL.md",
+            home / ".codex/agent-memory-starter-kit-marketplace/plugins/agent-memory-starter-kit/commands/memory.md",
+            home / ".codex/agent-memory-starter-kit-marketplace/plugins/agent-memory-starter-kit/commands/memory-new.md",
+            home / ".codex/agent-memory-starter-kit-marketplace/plugins/agent-memory-starter-kit/commands/memory-connect.md",
+            home / ".codex/agent-memory-starter-kit-marketplace/plugins/agent-memory-starter-kit/commands/memory-backup.md",
             workspace / ".claude/commands/memory.md",
             workspace / ".claude/commands/memory-new.md",
             workspace / ".claude/commands/memory-connect.md",
@@ -183,6 +192,7 @@ def test_memory_install_writes_agent_shortcuts() -> None:
             workspace / "AGENT_MEMORY_COMMANDS.md",
         ]
         all_expected_exist = all(path.exists() for path in expected)
+        memory_shim_executable = os.access(home / ".local/bin/memory", os.X_OK)
         texts = "\n".join(path.read_text(encoding="utf-8") for path in expected)
         duplicate = run(
             "scripts/memory",
@@ -212,12 +222,26 @@ def test_memory_install_writes_agent_shortcuts() -> None:
         )
 
     assert "Memory shortcuts installed" in install.stdout
+    assert "Codex plugin add: skipped_custom_home" in install.stdout
+    assert "Codex text shortcut: memory" in install.stdout
+    assert "Codex text shortcuts: memory new, memory connect, memory backup" in install.stdout
+    assert "Shell command installed: memory" in install.stdout
     assert all_expected_exist
+    assert memory_shim_executable
     assert "/memory" in texts
+    assert "memory new" in texts
     assert "/memory new" in texts
     assert "/memory connect" in texts
     assert "/memory backup" in texts
+    assert "$ARGUMENTS" in texts
+    assert "`new`: run `" in texts
+    assert "`connect`: run `" in texts
+    assert "`backup`: run `" in texts
+    assert "If arguments are unclear" in texts
+    assert "[marketplaces.agent-memory-starter-kit-local]" in texts
+    assert '[plugins."agent-memory-starter-kit@agent-memory-starter-kit-local"]' in texts
     assert "scripts/memory" in texts
+    assert "--root" in texts
     assert "Do not ask the user to hand-edit memory files" in texts
     assert duplicate.returncode == 1
     assert "install_blocked: target exists" in duplicate.stdout

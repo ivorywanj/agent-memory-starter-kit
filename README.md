@@ -21,9 +21,24 @@ Install the Agent shortcuts into a project workspace:
 scripts/memory install --agent all --workspace ./your-project
 ```
 
-This installs command helpers for Codex, Claude Code, Cursor, and generic file-reading Agents. Native slash menus vary by Agent. If `/memory` still does not appear, ask the Agent to read the installed helper file and run the matching command.
+This installs command helpers for Codex, Claude Code, Cursor, and generic file-reading Agents. Native slash menus vary by Agent. If a slash menu does not appear, ask the Agent to read the installed helper file and run the matching command.
 
-If your Agent recognizes `/memory`, send:
+Codex uses text shortcuts and the Agent Memory skill. After install and restart, type one of these in Codex:
+
+```text
+memory
+memory new
+memory connect
+memory backup
+```
+
+The installer also writes best-effort plugin command files for slash-capable Agents. Current Codex versions may not show custom slash commands in the command picker, so the text shortcuts above are the stable Codex path.
+
+For Codex, the installer writes a real `memory` shell command into `~/.local/bin` so the Agent can run `memory`, `memory new`, `memory connect`, and `memory backup` from any project.
+
+Slash-capable Agents may also show fallback aliases such as `/memory-new`, `/memory-connect`, and `/memory-backup`.
+
+If your Agent recognizes `/memory`, you can also send:
 
 ```text
 /memory
@@ -38,13 +53,13 @@ scripts/memory
 The menu should show four quick entries:
 
 ```text
-1. /memory - Show this menu
-2. /memory new - Create a memory library
-3. /memory connect - Connect this Agent
-4. /memory backup - Back up a memory library
+1. memory - Show this menu
+2. memory new - Create a memory library
+3. memory connect - Connect this Agent
+4. memory backup - Back up a memory library
 ```
 
-You can also go directly:
+You can also go directly where slash commands are supported:
 
 ```text
 /memory new
@@ -115,6 +130,7 @@ See `docs/productized-user-flow.md` for the user-flow design and measurable acce
 
 - `/memory` or `scripts/memory` shows exactly four quick entries.
 - `scripts/memory install --agent all` writes Codex, Claude Code, Cursor, and generic command helpers.
+- Codex install writes a local plugin package and enables it in `~/.codex/config.toml`.
 - `/memory new` asks no more than seven setup questions, plus an optional project-folder follow-up.
 - `/memory connect` does not re-ask profile questions and auto-detects the current Agent when possible.
 - `/memory backup` creates a zip and excludes unsafe or temporary files.

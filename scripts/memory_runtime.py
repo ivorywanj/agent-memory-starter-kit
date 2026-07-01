@@ -8,7 +8,9 @@ import hashlib
 import json
 import re
 import shlex
+import shutil
 import os
+import subprocess
 import sys
 import zipfile
 from dataclasses import asdict, dataclass
@@ -86,6 +88,12 @@ AGENT_BRIDGE_TARGETS = {
     "generic": Path("AGENT_MEMORY.md"),
 }
 AGENT_INSTALL_TARGETS = ("codex", "claude", "cursor", "generic")
+CODEX_MARKETPLACE_NAME = "agent-memory-starter-kit-local"
+CODEX_PLUGIN_NAME = "agent-memory-starter-kit"
+CODEX_PLUGIN_VERSION = "0.1.1"
+CODEX_CONFIG_BEGIN = "# BEGIN Agent Memory Starter Kit plugin"
+CODEX_CONFIG_END = "# END Agent Memory Starter Kit plugin"
+CODEX_COMMANDS = ("memory", "memory-new", "memory-connect", "memory-backup")
 AGENT_LABELS = {
     "codex": "Codex",
     "claude": "Claude Code",
@@ -439,14 +447,23 @@ def command_helper_text(root: Path) -> str:
     root_arg = shlex.quote(str(root))
     return f"""# Agent Memory Commands
 
-Use these shortcuts when the user sends `/memory`, `/memory new`, `/memory connect`, or `/memory backup`.
+Use these shortcuts when the user asks for Agent Memory setup, connection, or backup.
 
-## Shortcuts
+Codex stable entry:
+
+- `memory`: show the menu.
+- `memory new`: create a memory library for a new user. Ask one guided question at a time.
+- `memory connect`: connect this Agent to an existing memory library.
+- `memory backup`: create a zip backup.
+
+Slash-capable Agents may also support:
 
 - `/memory`: show the menu.
 - `/memory new`: create a memory library for a new user. Ask one guided question at a time.
 - `/memory connect`: connect this Agent to an existing memory library.
 - `/memory backup`: create a zip backup.
+
+Codex may not show custom slash commands in the command picker. If the user is in Codex, treat `memory new`, `memory connect`, and `memory backup` as the reliable entry points and run the matching command below.
 
 ## Commands To Run
 
@@ -457,8 +474,8 @@ Use these shortcuts when the user sends `/memory`, `/memory new`, `/memory conne
 {memory_cmd} --root {root_arg} backup
 ```
 
-If the user is new, start with `/memory new`.
-If the user already has a memory library, start with `/memory connect`.
+If the user is new, start with `memory new` or `/memory new` where slash commands are supported.
+If the user already has a memory library, start with `memory connect` or `/memory connect` where slash commands are supported.
 Do not ask the user to hand-edit memory files.
 Do not store or print secrets.
 """
@@ -466,16 +483,120 @@ Do not store or print secrets.
 
 def codex_skill_text(root: Path) -> str:
     helper = command_helper_text(root)
-    return f"""# Agent Memory
+    return f"""---
+name: agent-memory
+description: Use when the user says Agent Memory, memory, memory new, memory connect, memory backup, or asks to set up, connect, share, or back up an Agent Memory library.
+---
+
+# Agent Memory
 
 ## When To Use
 
-Use this skill when the user sends `/memory`, `/memory new`, `/memory connect`, or `/memory backup`, or asks to set up, connect, share, or back up an Agent Memory library.
+Use this skill when the user says `Agent Memory`, `memory`, `memory new`, `memory connect`, `memory backup`, or asks to set up, connect, share, or back up an Agent Memory library.
 
 ## Instructions
 
 {helper}
 """
+
+
+def codex_command_text(root: Path, command: str) -> str:
+    memory_cmd = shlex.quote(str(memory_script()))
+    root_arg = shlex.quote(str(root))
+    if command == "memory":
+        return f"""---
+description: Show Agent Memory menu or run new/connect/backup
+argument-hint: [new|connect|backup]
+allowed-tools: Bash
+---
+
+# /memory
+
+The user invoked this command with: `$ARGUMENTS`
+
+Route the request exactly:
+
+- Empty arguments: run `{memory_cmd}`.
+- `new`: run `{memory_cmd} new`.
+- `connect`: run `{memory_cmd} --root {root_arg} connect`.
+- `backup`: run `{memory_cmd} --root {root_arg} backup`.
+
+If arguments are unclear, show the four choices and do not invent another command.
+Guide the user one question at a time. Do not ask the user to hand-edit memory files. Do not store or print secrets.
+"""
+
+    command_map = {
+        "memory-new": f"{memory_cmd} new",
+        "memory-connect": f"{memory_cmd} --root {root_arg} connect",
+        "memory-backup": f"{memory_cmd} --root {root_arg} backup",
+    }
+    descriptions = {
+        "memory-new": "Create a memory library",
+        "memory-connect": "Connect this Agent to a memory library",
+        "memory-backup": "Back up a memory library",
+    }
+    display = "/" + command.replace("-", " ")
+    return f"""---
+description: {descriptions[command]}
+argument-hint: [optional details]
+allowed-tools: Bash
+---
+
+# {display}
+
+Run this command:
+
+```bash
+{command_map[command]}
+```
+
+Guide the user one question at a time. Do not ask the user to hand-edit memory files. Do not store or print secrets.
+"""
+
+
+def codex_plugin_manifest_text() -> str:
+    manifest = {
+        "name": CODEX_PLUGIN_NAME,
+        "version": CODEX_PLUGIN_VERSION,
+        "description": "Agent Memory Starter Kit shortcuts for creating, connecting, and backing up a local memory library.",
+        "author": {"name": "Agent Memory Starter Kit contributors"},
+        "repository": "https://github.com/ivorywanj/agent-memory-starter-kit",
+        "license": "MIT",
+        "keywords": ["memory", "agent", "onboarding", "local-first"],
+        "skills": "./skills/",
+        "interface": {
+            "displayName": "Agent Memory",
+            "shortDescription": "Local-first memory shortcuts for coding agents",
+            "longDescription": "Create, connect, and back up a local memory library for Codex and other coding agents.",
+            "developerName": "Agent Memory Starter Kit contributors",
+            "category": "Developer Tools",
+            "capabilities": ["Interactive", "Read", "Write"],
+            "websiteURL": "https://github.com/ivorywanj/agent-memory-starter-kit",
+            "defaultPrompt": ["Set up Agent Memory"],
+            "brandColor": "#10A37F",
+        },
+    }
+    return json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+
+
+def codex_marketplace_manifest_text() -> str:
+    manifest = {
+        "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+        "name": CODEX_MARKETPLACE_NAME,
+        "description": "Local marketplace for Agent Memory Starter Kit.",
+        "owner": {"name": "Agent Memory Starter Kit contributors"},
+        "plugins": [
+            {
+                "name": CODEX_PLUGIN_NAME,
+                "description": "Agent Memory Starter Kit shortcuts for creating, connecting, and backing up a local memory library.",
+                "author": {"name": "Agent Memory Starter Kit contributors"},
+                "category": "development",
+                "source": f"./plugins/{CODEX_PLUGIN_NAME}",
+                "homepage": "https://github.com/ivorywanj/agent-memory-starter-kit",
+            }
+        ],
+    }
+    return json.dumps(manifest, indent=2, sort_keys=True) + "\n"
 
 
 def claude_command_text(root: Path, command: str) -> str:
@@ -514,16 +635,116 @@ def generic_command_text(root: Path) -> str:
     return command_helper_text(root)
 
 
+def codex_marketplace_dir(home: Path) -> Path:
+    return home / ".codex/agent-memory-starter-kit-marketplace"
+
+
+def codex_plugin_root(home: Path) -> Path:
+    return codex_marketplace_dir(home) / "plugins" / CODEX_PLUGIN_NAME
+
+
+def codex_config_block(home: Path) -> str:
+    source = str(codex_marketplace_dir(home))
+    return f"""{CODEX_CONFIG_BEGIN}
+
+[marketplaces.{CODEX_MARKETPLACE_NAME}]
+source_type = "local"
+source = "{source}"
+
+[plugins."{CODEX_PLUGIN_NAME}@{CODEX_MARKETPLACE_NAME}"]
+enabled = true
+
+{CODEX_CONFIG_END}
+"""
+
+
+def upsert_codex_config(home: Path, force: bool) -> Path:
+    config = home / ".codex/config.toml"
+    block = codex_config_block(home)
+    config.parent.mkdir(parents=True, exist_ok=True)
+    existing = config.read_text(encoding="utf-8") if config.exists() else ""
+    if CODEX_CONFIG_BEGIN in existing and CODEX_CONFIG_END in existing:
+        if not force:
+            return config
+        pattern = re.compile(re.escape(CODEX_CONFIG_BEGIN) + r".*?" + re.escape(CODEX_CONFIG_END), re.S)
+        updated = pattern.sub(block.rstrip(), existing)
+    else:
+        updated = existing.rstrip() + "\n\n" + block if existing.strip() else block
+    config.write_text(updated.rstrip() + "\n", encoding="utf-8")
+    return config
+
+
+def find_codex_cli() -> Path | None:
+    explicit = os.environ.get("CODEX_CLI_PATH", "").strip()
+    candidates = []
+    if explicit:
+        candidates.append(Path(explicit).expanduser())
+    found = shutil.which("codex")
+    if found:
+        candidates.append(Path(found))
+    candidates.append(Path("/Applications/Codex.app/Contents/Resources/codex"))
+    for candidate in candidates:
+        if candidate.exists() and os.access(candidate, os.X_OK):
+            return candidate
+    return None
+
+
+def codex_plugin_selector() -> str:
+    return f"{CODEX_PLUGIN_NAME}@{CODEX_MARKETPLACE_NAME}"
+
+
+def install_codex_plugin_with_cli(home: Path) -> tuple[str, str]:
+    if home.resolve() != Path.home().resolve():
+        return "skipped_custom_home", "Codex CLI install skipped for non-default --home."
+    cli = find_codex_cli()
+    if not cli:
+        return "skipped_no_cli", f"Codex CLI not found. Run: codex plugin add {codex_plugin_selector()}"
+    env = os.environ.copy()
+    env["CODEX_HOME"] = str(home / ".codex")
+    completed = subprocess.run(
+        [str(cli), "plugin", "add", codex_plugin_selector()],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        check=False,
+        env=env,
+    )
+    output = completed.stdout.strip()
+    if completed.returncode == 0:
+        return "installed", output
+    if "already" in output.lower() and "installed" in output.lower():
+        return "already_installed", output
+    return "failed", output
+
+
 @dataclass
 class InstallFile:
     agent: str
     path: Path
     content: str
+    mode: int | None = None
+
+
+def memory_shell_shim_text(root: Path) -> str:
+    memory_cmd = shlex.quote(str(memory_script()))
+    root_arg = shlex.quote(str(root))
+    return f"""#!/bin/sh
+exec {memory_cmd} --root {root_arg} "$@"
+"""
 
 
 def install_files_for(root: Path, agent: str, workspace: Path, home: Path) -> list[InstallFile]:
     if agent == "codex":
-        return [InstallFile(agent, home / ".codex/skills/agent-memory/SKILL.md", codex_skill_text(root))]
+        plugin_root = codex_plugin_root(home)
+        files = [
+            InstallFile(agent, codex_marketplace_dir(home) / ".claude-plugin/marketplace.json", codex_marketplace_manifest_text()),
+            InstallFile(agent, home / ".codex/skills/agent-memory/SKILL.md", codex_skill_text(root)),
+            InstallFile(agent, home / ".local/bin/memory", memory_shell_shim_text(root), 0o755),
+            InstallFile(agent, plugin_root / ".codex-plugin/plugin.json", codex_plugin_manifest_text()),
+            InstallFile(agent, plugin_root / "skills/agent-memory/SKILL.md", codex_skill_text(root)),
+        ]
+        files.extend(InstallFile(agent, plugin_root / "commands" / f"{command}.md", codex_command_text(root, command)) for command in CODEX_COMMANDS)
+        return files
     if agent == "claude":
         command_dir = workspace / ".claude/commands"
         return [
@@ -562,14 +783,31 @@ def command_install(args: argparse.Namespace) -> int:
     for item in planned:
         item.path.parent.mkdir(parents=True, exist_ok=True)
         item.path.write_text(item.content, encoding="utf-8")
+        if item.mode is not None:
+            item.path.chmod(item.mode)
+    config_path = None
+    codex_cli_status = None
+    codex_cli_output = None
+    if "codex" in agents:
+        config_path = upsert_codex_config(home, args.force)
+        codex_cli_status, codex_cli_output = install_codex_plugin_with_cli(home)
     installed_agents = ", ".join(AGENT_LABELS[agent] for agent in agents)
     print("Memory shortcuts installed")
     print(f"Installed for: {installed_agents}")
     print(f"Workspace: {workspace}")
     print(f"Memory library: {root}")
-    print("Try: /memory")
-    print("Also available: /memory new, /memory connect, /memory backup")
-    print("If your Agent still does not show slash commands, ask it to read the installed helper file.")
+    print("Codex text shortcut: memory")
+    print("Codex text shortcuts: memory new, memory connect, memory backup")
+    print("Shell command installed: memory")
+    print("Slash-capable Agents: /memory, /memory new, /memory connect, /memory backup")
+    print("Codex custom slash commands are best-effort; current Codex may not show plugin commands.")
+    print("If your Agent does not show slash commands, use the text shortcuts above.")
+    if config_path:
+        print(f"- Codex config: {config_path}")
+    if codex_cli_status:
+        print(f"- Codex plugin add: {codex_cli_status}")
+        if codex_cli_output:
+            print(codex_cli_output)
     for item in planned:
         print(f"- {AGENT_LABELS[item.agent]}: {item.path}")
     return 0
@@ -937,16 +1175,16 @@ def command_start(args: argparse.Namespace) -> int:
 
 def print_memory_menu() -> None:
     print("What do you want to do?")
-    print("1. /memory - Show this menu")
-    print("2. /memory new - Create a memory library")
-    print("3. /memory connect - Connect this Agent")
-    print("4. /memory backup - Back up a memory library")
+    print("1. memory - Show this menu")
+    print("2. memory new - Create a memory library")
+    print("3. memory connect - Connect this Agent")
+    print("4. memory backup - Back up a memory library")
     print("")
-    print("If your Agent does not recognize /memory yet, ask it to run:")
-    print("- scripts/memory")
-    print("- scripts/memory new")
-    print("- scripts/memory connect")
-    print("- scripts/memory backup")
+    print("Slash-capable Agents may also support:")
+    print("- /memory")
+    print("- /memory new")
+    print("- /memory connect")
+    print("- /memory backup")
 
 
 def command_connect(args: argparse.Namespace) -> int:

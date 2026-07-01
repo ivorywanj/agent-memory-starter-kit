@@ -35,7 +35,7 @@ scripts/memory install --agent all --workspace ./your-project
 
 Flow:
 
-1. Write a Codex skill helper.
+1. Write a Codex local plugin package, command files, skill helper, and config block.
 2. Write Claude Code command files.
 3. Write a Cursor rule helper.
 4. Write a generic Agent command helper.
