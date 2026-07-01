@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Added `scripts/memory install` to install Agent shortcut helpers for Codex, Claude Code, Cursor, and generic file-reading Agents.
+- Added public fixture tests for shortcut helper installation and duplicate-install protection.
+
 ## v0.1.4
 
 - Added user-facing `/memory new`, `/memory connect`, and `/memory backup` shortcuts.

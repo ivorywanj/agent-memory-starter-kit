@@ -15,6 +15,14 @@ cd agent-memory-starter-kit
 
 Open Codex, Claude Code, Cursor, or another Agent that can read project files.
 
+Install the Agent shortcuts into a project workspace:
+
+```bash
+scripts/memory install --agent all --workspace ./your-project
+```
+
+This installs command helpers for Codex, Claude Code, Cursor, and generic file-reading Agents. Native slash menus vary by Agent. If `/memory` still does not appear, ask the Agent to read the installed helper file and run the matching command.
+
 If your Agent recognizes `/memory`, send:
 
 ```text
@@ -106,6 +114,7 @@ Project workspaces are routing hints, not ingestion permission. The setup record
 See `docs/productized-user-flow.md` for the user-flow design and measurable acceptance criteria. The core gates are:
 
 - `/memory` or `scripts/memory` shows exactly four quick entries.
+- `scripts/memory install --agent all` writes Codex, Claude Code, Cursor, and generic command helpers.
 - `/memory new` asks no more than seven setup questions, plus an optional project-folder follow-up.
 - `/memory connect` does not re-ask profile questions and auto-detects the current Agent when possible.
 - `/memory backup` creates a zip and excludes unsafe or temporary files.
@@ -144,6 +153,7 @@ Examples:
 
 ```bash
 scripts/memory --root ./my-agent-memory init --answers templates/public/answers.example.json
+scripts/memory --root ./my-agent-memory install --agent all --workspace ./my-project
 scripts/memory --root ./my-agent-memory share --agent codex --workspace ./my-project
 scripts/memory --root ./my-agent-memory remember --session-id demo --text "以后测试通过必须验证真实行为，不能只检查文件存在。"
 scripts/memory --root ./my-agent-memory improve --session-id demo

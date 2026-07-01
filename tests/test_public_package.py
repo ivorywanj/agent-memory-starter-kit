@@ -153,6 +153,77 @@ def test_memory_shortcuts_and_backup_zip() -> None:
         assert "memory/hot/USER.draft.md" not in names
 
 
+def test_memory_install_writes_agent_shortcuts() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp) / "library"
+        workspace = Path(tmp) / "workspace"
+        home = Path(tmp) / "home"
+        workspace.mkdir()
+        home.mkdir()
+        run("scripts/memory", "--root", str(root), "new", "--answers", "templates/public/answers.example.json")
+        install = run(
+            "scripts/memory",
+            "--root",
+            str(root),
+            "install",
+            "--agent",
+            "all",
+            "--workspace",
+            str(workspace),
+            "--home",
+            str(home),
+        )
+        expected = [
+            home / ".codex/skills/agent-memory/SKILL.md",
+            workspace / ".claude/commands/memory.md",
+            workspace / ".claude/commands/memory-new.md",
+            workspace / ".claude/commands/memory-connect.md",
+            workspace / ".claude/commands/memory-backup.md",
+            workspace / ".cursor/rules/agent-memory-commands.mdc",
+            workspace / "AGENT_MEMORY_COMMANDS.md",
+        ]
+        all_expected_exist = all(path.exists() for path in expected)
+        texts = "\n".join(path.read_text(encoding="utf-8") for path in expected)
+        duplicate = run(
+            "scripts/memory",
+            "--root",
+            str(root),
+            "install",
+            "--agent",
+            "all",
+            "--workspace",
+            str(workspace),
+            "--home",
+            str(home),
+            check=False,
+        )
+        forced = run(
+            "scripts/memory",
+            "--root",
+            str(root),
+            "install",
+            "--agent",
+            "all",
+            "--workspace",
+            str(workspace),
+            "--home",
+            str(home),
+            "--force",
+        )
+
+    assert "Memory shortcuts installed" in install.stdout
+    assert all_expected_exist
+    assert "/memory" in texts
+    assert "/memory new" in texts
+    assert "/memory connect" in texts
+    assert "/memory backup" in texts
+    assert "scripts/memory" in texts
+    assert "Do not ask the user to hand-edit memory files" in texts
+    assert duplicate.returncode == 1
+    assert "install_blocked: target exists" in duplicate.stdout
+    assert "Memory shortcuts installed" in forced.stdout
+
+
 def test_memory_loop_promotes_recalls_and_deprecates() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp) / "library"
@@ -210,6 +281,7 @@ def main() -> int:
     tests = [
         test_init_creates_public_runtime,
         test_memory_shortcuts_and_backup_zip,
+        test_memory_install_writes_agent_shortcuts,
         test_memory_loop_promotes_recalls_and_deprecates,
         test_init_blocks_secret_shaped_answers,
         test_memory_guard_passes_public_package,

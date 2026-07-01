@@ -21,6 +21,12 @@ User-facing flow:
 /memory connect
 ```
 
+Install shortcut helpers first when the Agent does not show `/memory`:
+
+```bash
+scripts/memory --root ./my-agent-memory install --agent all --workspace ./my-project
+```
+
 Agent command:
 
 ```bash

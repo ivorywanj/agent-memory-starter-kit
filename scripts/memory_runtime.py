@@ -85,6 +85,7 @@ AGENT_BRIDGE_TARGETS = {
     "cursor": Path(".cursor/rules/agent-memory.mdc"),
     "generic": Path("AGENT_MEMORY.md"),
 }
+AGENT_INSTALL_TARGETS = ("codex", "claude", "cursor", "generic")
 AGENT_LABELS = {
     "codex": "Codex",
     "claude": "Claude Code",
@@ -122,6 +123,10 @@ def now_iso() -> str:
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
+
+
+def memory_script() -> Path:
+    return Path(__file__).resolve().with_name("memory")
 
 
 def user_default_root() -> Path:
@@ -330,7 +335,7 @@ def detect_agent() -> str | None:
 def agent_bridge_text(root: Path, agent: str) -> str:
     label = AGENT_LABELS[agent]
     root_text = str(root)
-    memory_cmd = shlex.quote(str(root / "scripts/memory"))
+    memory_cmd = shlex.quote(str(memory_script()))
     root_arg = shlex.quote(root_text)
     return f"""# Agent Memory Bridge
 
@@ -382,7 +387,7 @@ Safety:
 def agent_connection_text(root: Path, agent: str) -> str:
     label = AGENT_LABELS[agent]
     root_text = str(root)
-    memory_cmd = shlex.quote(str(root / "scripts/memory"))
+    memory_cmd = shlex.quote(str(memory_script()))
     root_arg = shlex.quote(root_text)
     return f"""# Agent Memory Connection
 
@@ -427,6 +432,147 @@ Safety:
 - Do not load every file by default.
 - Do not read project folders unless the task specifically requires the relevant source files.
 """
+
+
+def command_helper_text(root: Path) -> str:
+    memory_cmd = shlex.quote(str(memory_script()))
+    root_arg = shlex.quote(str(root))
+    return f"""# Agent Memory Commands
+
+Use these shortcuts when the user sends `/memory`, `/memory new`, `/memory connect`, or `/memory backup`.
+
+## Shortcuts
+
+- `/memory`: show the menu.
+- `/memory new`: create a memory library for a new user. Ask one guided question at a time.
+- `/memory connect`: connect this Agent to an existing memory library.
+- `/memory backup`: create a zip backup.
+
+## Commands To Run
+
+```bash
+{memory_cmd}
+{memory_cmd} new
+{memory_cmd} --root {root_arg} connect
+{memory_cmd} --root {root_arg} backup
+```
+
+If the user is new, start with `/memory new`.
+If the user already has a memory library, start with `/memory connect`.
+Do not ask the user to hand-edit memory files.
+Do not store or print secrets.
+"""
+
+
+def codex_skill_text(root: Path) -> str:
+    helper = command_helper_text(root)
+    return f"""# Agent Memory
+
+## When To Use
+
+Use this skill when the user sends `/memory`, `/memory new`, `/memory connect`, or `/memory backup`, or asks to set up, connect, share, or back up an Agent Memory library.
+
+## Instructions
+
+{helper}
+"""
+
+
+def claude_command_text(root: Path, command: str) -> str:
+    memory_cmd = shlex.quote(str(memory_script()))
+    root_arg = shlex.quote(str(root))
+    command_map = {
+        "memory": f"{memory_cmd}",
+        "memory-new": f"{memory_cmd} new",
+        "memory-connect": f"{memory_cmd} --root {root_arg} connect",
+        "memory-backup": f"{memory_cmd} --root {root_arg} backup",
+    }
+    display = "/" + command.replace("-", " ")
+    return f"""# {display}
+
+Run:
+
+```bash
+{command_map[command]}
+```
+
+Guide the user one question at a time. Do not ask them to hand-edit memory files. Do not store or print secrets.
+"""
+
+
+def cursor_rule_text(root: Path) -> str:
+    return f"""---
+description: Agent Memory shortcuts
+alwaysApply: true
+---
+
+{command_helper_text(root)}
+"""
+
+
+def generic_command_text(root: Path) -> str:
+    return command_helper_text(root)
+
+
+@dataclass
+class InstallFile:
+    agent: str
+    path: Path
+    content: str
+
+
+def install_files_for(root: Path, agent: str, workspace: Path, home: Path) -> list[InstallFile]:
+    if agent == "codex":
+        return [InstallFile(agent, home / ".codex/skills/agent-memory/SKILL.md", codex_skill_text(root))]
+    if agent == "claude":
+        command_dir = workspace / ".claude/commands"
+        return [
+            InstallFile(agent, command_dir / "memory.md", claude_command_text(root, "memory")),
+            InstallFile(agent, command_dir / "memory-new.md", claude_command_text(root, "memory-new")),
+            InstallFile(agent, command_dir / "memory-connect.md", claude_command_text(root, "memory-connect")),
+            InstallFile(agent, command_dir / "memory-backup.md", claude_command_text(root, "memory-backup")),
+        ]
+    if agent == "cursor":
+        return [InstallFile(agent, workspace / ".cursor/rules/agent-memory-commands.mdc", cursor_rule_text(root))]
+    if agent == "generic":
+        return [InstallFile(agent, workspace / "AGENT_MEMORY_COMMANDS.md", generic_command_text(root))]
+    raise ValueError(f"unsupported agent: {agent}")
+
+
+def command_install(args: argparse.Namespace) -> int:
+    root = args.root
+    workspace = (args.workspace or Path.cwd()).expanduser().resolve()
+    home = (args.home or Path.home()).expanduser().resolve()
+    agents = list(AGENT_INSTALL_TARGETS) if args.agent == "all" else [args.agent]
+    planned: list[InstallFile] = []
+    for agent in agents:
+        planned.extend(install_files_for(root, agent, workspace, home))
+    combined = "\n".join(item.content + "\n" + str(item.path) for item in planned)
+    findings = guard_text(root, combined)
+    if findings:
+        print(f"install_blocked: {findings[0].kind}")
+        return 1
+    existing = [item.path for item in planned if item.path.exists()]
+    if existing and not args.force:
+        print("install_blocked: target exists")
+        for path in existing:
+            print(str(path))
+        print("Use --force to overwrite installed shortcuts.")
+        return 1
+    for item in planned:
+        item.path.parent.mkdir(parents=True, exist_ok=True)
+        item.path.write_text(item.content, encoding="utf-8")
+    installed_agents = ", ".join(AGENT_LABELS[agent] for agent in agents)
+    print("Memory shortcuts installed")
+    print(f"Installed for: {installed_agents}")
+    print(f"Workspace: {workspace}")
+    print(f"Memory library: {root}")
+    print("Try: /memory")
+    print("Also available: /memory new, /memory connect, /memory backup")
+    print("If your Agent still does not show slash commands, ask it to read the installed helper file.")
+    for item in planned:
+        print(f"- {AGENT_LABELS[item.agent]}: {item.path}")
+    return 0
 
 
 def write_agent_registry(root: Path, agent: str, target: Path, mode: str) -> None:
@@ -1347,6 +1493,12 @@ def build_parser() -> argparse.ArgumentParser:
     connect.add_argument("--force", action="store_true", help="Overwrite an existing connection file.")
     connect.add_argument("--print", dest="print_only", action="store_true", help="Print the connection text instead of writing a file.")
 
+    install = sub.add_parser("install")
+    install.add_argument("--agent", choices=("all", *AGENT_INSTALL_TARGETS), default="all")
+    install.add_argument("--workspace", type=Path, default=None, help="Project folder where Agent helper files should be installed.")
+    install.add_argument("--home", type=Path, default=None, help="Home folder for user-level helpers. Mainly useful for tests.")
+    install.add_argument("--force", action="store_true", help="Overwrite installed helper files.")
+
     backup = sub.add_parser("backup")
     backup.add_argument("--output", type=Path, default=None, help="Backup zip file path.")
     backup.add_argument("--backup-dir", type=Path, default=None, help="Folder for generated backups.")
@@ -1381,7 +1533,9 @@ def main(argv: list[str]) -> int:
         print_memory_menu()
         return 0
     if args.root is None:
-        if args.command in {"start", "new", "connect", "backup"}:
+        if args.command == "install":
+            args.root = user_default_root()
+        elif args.command in {"start", "new", "connect", "backup"}:
             default = user_default_root()
             args.root = default if args.command == "new" or default.exists() else repo_root()
         else:
@@ -1395,6 +1549,8 @@ def main(argv: list[str]) -> int:
         return command_share(args)
     if args.command == "connect":
         return command_connect(args)
+    if args.command == "install":
+        return command_install(args)
     if args.command == "backup":
         return command_backup(args)
     if args.command == "remember":
