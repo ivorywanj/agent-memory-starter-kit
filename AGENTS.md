@@ -25,5 +25,6 @@ Do not start `memory new` until the user chooses create/new. Do not ask "What sh
 
 - Keep the response short and user-facing.
 - Do not show setup analysis, repository structure, implementation strategy, or a full questionnaire.
+- Do not add tool mode limitations, execution caveats, or other extra notes to the first response.
 - Do not ask the user to hand-write Markdown.
 - Do not store or print secrets.

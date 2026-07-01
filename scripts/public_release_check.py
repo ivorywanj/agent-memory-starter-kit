@@ -53,6 +53,10 @@ REQUIRED_FILES = (
 README_REQUIRED_SNIPPETS = (
     "A local memory library for AI agents.",
     "## Quickstart",
+    "copy this whole prompt",
+    "Please set up JourneyMem from this GitHub repo:",
+    "Do not paste only `git clone` and `cd agent-memory-starter-kit` into an Agent.",
+    "Do not add setup analysis, repository summary, or mode/tooling notes.",
     "scripts/memory install --agent all --workspace ./your-project",
     "Type:",
     "memory",
@@ -63,7 +67,7 @@ README_REQUIRED_SNIPPETS = (
     "before running `memory new` or `memory connect`",
     "real `memory` shell command",
     "[$journeymem](<generated-local-skill-path>/SKILL.md)",
-    "Fallback for troubleshooting only:",
+    "Manual terminal fallback only:",
     "./scripts/memory new",
     "For first-time setup, the Agent should not explain setup internals or ask where to store the files.",
     "only show the next useful question",
@@ -96,6 +100,7 @@ AGENTS_REQUIRED_SNIPPETS = (
     "`memory connect` - Connect this Agent to an existing memory library",
     "Do not start `memory new` until the user chooses create/new.",
     "Do not ask \"What should Agents call you?\" before that choice.",
+    "Do not add tool mode limitations, execution caveats, or other extra notes to the first response.",
 )
 AGENT_INSTRUCTION_FILES = (
     "AGENTS.md",
@@ -141,9 +146,12 @@ def main() -> int:
         for term in README_FIRST_SCREEN_BLOCKED_TERMS:
             if term in first_screen:
                 findings.append(f"README.md first screen uses internal term: {term}")
-        before_fallback = readme_text.split("Fallback for troubleshooting only:", 1)[0]
+        before_fallback = readme_text.split("Manual terminal fallback only:", 1)[0]
         if "./scripts/memory new" in before_fallback:
             findings.append("README.md promotes ./scripts/memory new before fallback")
+        before_manual_fallback = readme_text.split("Manual terminal fallback only:", 1)[0]
+        if "git clone " in before_manual_fallback:
+            findings.append("README.md promotes bare git clone before Agent prompt")
     for rel in AGENT_INSTRUCTION_FILES:
         agents_file = ROOT / rel
         if not agents_file.exists():

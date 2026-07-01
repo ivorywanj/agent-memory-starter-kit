@@ -6,16 +6,30 @@ JourneyMem helps Codex, Claude Code, Cursor, and other Agents that can read proj
 
 ## Quickstart
 
-Clone JourneyMem:
+For Codex, TRAE Work, Claude Code, Cursor, or another Agent, copy this whole prompt:
 
-```bash
-git clone https://github.com/ivorywanj/agent-memory-starter-kit.git
-cd agent-memory-starter-kit
+```text
+Please set up JourneyMem from this GitHub repo:
+https://github.com/ivorywanj/agent-memory-starter-kit
+
+Open the repository, then read its Agent instructions if your environment supports them.
+
+Do not summarize the repository structure.
+Do not start `memory new` or `memory connect` yet.
+Ask me this first:
+Output only this user-facing choice. Do not add setup analysis, repository summary, or mode/tooling notes.
+
+What do you want to do?
+1. memory new - Create a memory library
+2. memory connect - Connect this Agent to an existing memory library
+
+Other command:
+- memory backup - Back up a memory library
 ```
 
-If an Agent is doing this for you, it should stop after clone and cd. A fresh clone does not mean the user chose new setup. The Agent must ask whether you want to create a new memory library or connect this Agent to an existing memory library before running `memory new` or `memory connect`.
+Do not paste only `git clone` and `cd agent-memory-starter-kit` into an Agent. That makes many Agents treat JourneyMem like a generic code repo. A fresh clone does not mean the user chose new setup; before running `memory new` or `memory connect`, the Agent must ask whether you want to create a new memory library or connect this Agent to an existing memory library.
 
-Install the Agent shortcuts into a project workspace:
+After the Agent opens the repo, it can install the Agent shortcuts into a project workspace:
 
 ```bash
 scripts/memory install --agent all --workspace ./your-project
@@ -65,7 +79,14 @@ Slash-capable Agents may also support `/memory`, `/memory new`, `/memory connect
 
 If `memory` is not found, rerun install and check the PATH note in the output.
 
-Fallback for troubleshooting only:
+Manual terminal fallback only:
+
+```bash
+git clone https://github.com/ivorywanj/agent-memory-starter-kit.git
+cd agent-memory-starter-kit
+```
+
+Then use these troubleshooting commands only when the Agent prompt flow is not available:
 
 ```bash
 ./scripts/memory
