@@ -24,16 +24,16 @@ memory connect
 Install shortcut helpers first when `memory` is not available:
 
 ```bash
-scripts/memory --root ./my-agent-memory install --agent all --workspace ./my-project
+scripts/memory --root ./my-journeymem install --agent all --workspace ./my-project
 ```
 
 Agent command:
 
 ```bash
-scripts/memory --root ./my-agent-memory connect --agent codex --workspace ./my-project
-scripts/memory --root ./my-agent-memory connect --agent claude --workspace ./my-project
-scripts/memory --root ./my-agent-memory connect --agent cursor --workspace ./my-project
-scripts/memory --root ./my-agent-memory connect --agent generic --workspace ./my-project
+scripts/memory --root ./my-journeymem connect --agent codex --workspace ./my-project
+scripts/memory --root ./my-journeymem connect --agent claude --workspace ./my-project
+scripts/memory --root ./my-journeymem connect --agent cursor --workspace ./my-project
+scripts/memory --root ./my-journeymem connect --agent generic --workspace ./my-project
 ```
 
 Default targets:
@@ -42,8 +42,8 @@ Default targets:
 |---|---|
 | `codex` | `AGENTS.md` |
 | `claude` | `CLAUDE.md` |
-| `cursor` | `.cursor/rules/agent-memory.mdc` |
-| `generic` | `AGENT_MEMORY.md` |
+| `cursor` | `.cursor/rules/journeymem.mdc` |
+| `generic` | `JOURNEYMEM.md` |
 
 Use `--target <file>` for an explicit target, `--append` for existing files, and `--print` for preview-only output.
 

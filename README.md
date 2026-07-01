@@ -1,12 +1,12 @@
-# Agent Memory Starter Kit
+# JourneyMem
 
-Local-first memory library for coding agents.
+A local memory library for AI agents.
 
-Agent Memory Starter Kit helps Codex, Claude Code, Cursor, and other Agents that can read project files learn a new user quickly, connect several Agents to the same memory, and keep everything in plain files. Users do not edit memory files by hand; the Agent asks guided questions and runs the setup steps.
+JourneyMem helps Codex, Claude Code, Cursor, and other Agents that can read project files learn a new user quickly, connect several Agents to the same memory, and keep everything in plain files. Users do not edit memory files by hand; the Agent asks guided questions and runs the setup steps.
 
 ## Quickstart
 
-Clone the starter kit:
+Clone JourneyMem:
 
 ```bash
 git clone https://github.com/ivorywanj/agent-memory-starter-kit.git
@@ -58,7 +58,7 @@ The installer writes a real `memory` shell command into `~/.local/bin` so Agents
 If an Agent supports explicit skill references, use the generated local skill path:
 
 ```text
-[$agent-memory](<generated-local-skill-path>/SKILL.md)
+[$journeymem](<generated-local-skill-path>/SKILL.md)
 ```
 
 Slash-capable Agents may also support `/memory`, `/memory new`, `/memory connect`, and `/memory backup`, but the stable entry is `memory`.
@@ -157,8 +157,8 @@ Default connection targets:
 |---|---|
 | Codex | `AGENTS.md` |
 | Claude Code | `CLAUDE.md` |
-| Cursor | `.cursor/rules/agent-memory.mdc` |
-| Generic | `AGENT_MEMORY.md` |
+| Cursor | `.cursor/rules/journeymem.mdc` |
+| Generic | `JOURNEYMEM.md` |
 
 ## Backup
 
@@ -181,13 +181,13 @@ init -> remember -> recall -> improve -> forget
 Examples:
 
 ```bash
-scripts/memory --root ./my-agent-memory init --answers templates/public/answers.example.json
-scripts/memory --root ./my-agent-memory install --agent all --workspace ./my-project
-scripts/memory --root ./my-agent-memory share --agent codex --workspace ./my-project
-scripts/memory --root ./my-agent-memory remember --session-id demo --text "以后测试通过必须验证真实行为，不能只检查文件存在。"
-scripts/memory --root ./my-agent-memory improve --session-id demo
-scripts/memory --root ./my-agent-memory recall --query "测试 真实行为" --context-only
-scripts/memory --root ./my-agent-memory forget --instruction "删除第 1 条"
+scripts/memory --root ./my-journeymem init --answers templates/public/answers.example.json
+scripts/memory --root ./my-journeymem install --agent all --workspace ./my-project
+scripts/memory --root ./my-journeymem share --agent codex --workspace ./my-project
+scripts/memory --root ./my-journeymem remember --session-id demo --text "以后测试通过必须验证真实行为，不能只检查文件存在。"
+scripts/memory --root ./my-journeymem improve --session-id demo
+scripts/memory --root ./my-journeymem recall --query "测试 真实行为" --context-only
+scripts/memory --root ./my-journeymem forget --instruction "删除第 1 条"
 ```
 
 ## Safety

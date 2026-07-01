@@ -68,6 +68,26 @@ def assert_entry_response_style_rules(text: str) -> None:
         assert snippet not in lowered, f"noisy setup phrase leaked into helper: {snippet}"
 
 
+def test_repo_agent_instructions_route_fresh_clone() -> None:
+    instruction_files = (
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".cursorrules",
+        ".cursor/rules/journeymem-first-run.mdc",
+        ".trae/rules/journeymem-first-run.md",
+        "JOURNEYMEM.md",
+    )
+    for rel in instruction_files:
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        assert "# JourneyMem Agent Instructions" in text
+        assert "do not summarize the repository structure" in text
+        assert "I can help you use JourneyMem." in text
+        assert "`memory new` - Create a new memory library" in text
+        assert "`memory connect` - Connect this Agent to an existing memory library" in text
+        assert "Do not start `memory new` until the user chooses create/new." in text
+        assert "Do not ask \"What should Agents call you?\" before that choice." in text
+
+
 def test_init_creates_public_runtime() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp) / "library"
@@ -113,7 +133,7 @@ def test_init_creates_public_runtime() -> None:
         cursor_workspace = Path(tmp) / "cursor-workspace"
         cursor_workspace.mkdir()
         cursor_connect = run("scripts/memory", "--root", str(root), "connect", "--agent", "cursor", "--workspace", str(cursor_workspace))
-        cursor_connection_exists = (cursor_workspace / ".cursor/rules/agent-memory.mdc").exists()
+        cursor_connection_exists = (cursor_workspace / ".cursor/rules/journeymem.mdc").exists()
         second = run("scripts/memory", "--root", str(root), "init", "--answers", str(answers), check=False)
 
     assert "Memory initialized" in result.stdout
@@ -129,7 +149,7 @@ def test_init_creates_public_runtime() -> None:
     assert projects_json["projects"][1]["workspace_status"] == "not_provided"
     assert "Current Agent connected" in codex_connect.stdout
     assert_no_user_first_screen_terms(codex_connect.stdout)
-    assert "Agent Memory Connection" in codex_connection
+    assert "JourneyMem Connection" in codex_connection
     assert "Alex" not in codex_connection
     assert "Example SaaS" not in codex_connection
     assert "DO_NOT_IMPORT_WORKSPACE_CONTENT" not in codex_connection
@@ -212,21 +232,21 @@ def test_memory_install_writes_agent_shortcuts() -> None:
         )
         expected = [
             home / ".codex/config.toml",
-            home / ".codex/skills/agent-memory/SKILL.md",
+            home / ".codex/skills/journeymem/SKILL.md",
             home / ".local/bin/memory",
-            home / ".codex/agent-memory-starter-kit-marketplace/.claude-plugin/marketplace.json",
-            home / ".codex/agent-memory-starter-kit-marketplace/plugins/agent-memory-starter-kit/.codex-plugin/plugin.json",
-            home / ".codex/agent-memory-starter-kit-marketplace/plugins/agent-memory-starter-kit/skills/agent-memory/SKILL.md",
-            home / ".codex/agent-memory-starter-kit-marketplace/plugins/agent-memory-starter-kit/commands/memory.md",
-            home / ".codex/agent-memory-starter-kit-marketplace/plugins/agent-memory-starter-kit/commands/memory-new.md",
-            home / ".codex/agent-memory-starter-kit-marketplace/plugins/agent-memory-starter-kit/commands/memory-connect.md",
-            home / ".codex/agent-memory-starter-kit-marketplace/plugins/agent-memory-starter-kit/commands/memory-backup.md",
+            home / ".codex/journeymem-marketplace/.claude-plugin/marketplace.json",
+            home / ".codex/journeymem-marketplace/plugins/journeymem/.codex-plugin/plugin.json",
+            home / ".codex/journeymem-marketplace/plugins/journeymem/skills/journeymem/SKILL.md",
+            home / ".codex/journeymem-marketplace/plugins/journeymem/commands/memory.md",
+            home / ".codex/journeymem-marketplace/plugins/journeymem/commands/memory-new.md",
+            home / ".codex/journeymem-marketplace/plugins/journeymem/commands/memory-connect.md",
+            home / ".codex/journeymem-marketplace/plugins/journeymem/commands/memory-backup.md",
             workspace / ".claude/commands/memory.md",
             workspace / ".claude/commands/memory-new.md",
             workspace / ".claude/commands/memory-connect.md",
             workspace / ".claude/commands/memory-backup.md",
-            workspace / ".cursor/rules/agent-memory-commands.mdc",
-            workspace / "AGENT_MEMORY_COMMANDS.md",
+            workspace / ".cursor/rules/journeymem-commands.mdc",
+            workspace / "JOURNEYMEM_COMMANDS.md",
         ]
         all_expected_exist = all(path.exists() for path in expected)
         memory_shim_executable = os.access(home / ".local/bin/memory", os.X_OK)
@@ -277,7 +297,7 @@ def test_memory_install_writes_agent_shortcuts() -> None:
         cursor_shim_exists = cursor_shim.exists()
         cursor_shim_executable = os.access(cursor_shim, os.X_OK)
 
-    assert "Memory shortcuts installed" in install.stdout
+    assert "JourneyMem shortcuts installed" in install.stdout
     assert "Codex plugin add: skipped_custom_home" in install.stdout
     assert "Text shortcut: memory" in install.stdout
     assert "Text shortcuts: memory new, memory connect, memory backup" in install.stdout
@@ -298,15 +318,15 @@ def test_memory_install_writes_agent_shortcuts() -> None:
     assert "`connect`: run `" in texts
     assert "`backup`: run `" in texts
     assert "If arguments are unclear" in texts
-    assert "[marketplaces.agent-memory-starter-kit-local]" in texts
-    assert '[plugins."agent-memory-starter-kit@agent-memory-starter-kit-local"]' in texts
+    assert "[marketplaces.journeymem-local]" in texts
+    assert '[plugins."journeymem@journeymem-local"]' in texts
     assert "scripts/memory" in texts
     assert "--root" in texts
     assert "Do not ask the user to hand-edit memory files" in texts
     assert_entry_response_style_rules(texts)
     assert duplicate.returncode == 1
     assert "install_blocked: target exists" in duplicate.stdout
-    assert "Memory shortcuts installed" in forced.stdout
+    assert "JourneyMem shortcuts installed" in forced.stdout
     assert cursor_shim_exists
     assert cursor_shim_executable
     assert "Text shortcut: memory" in cursor_install.stdout
@@ -367,6 +387,7 @@ def test_public_release_check_passes_package() -> None:
 
 def main() -> int:
     tests = [
+        test_repo_agent_instructions_route_fresh_clone,
         test_init_creates_public_runtime,
         test_memory_shortcuts_and_backup_zip,
         test_memory_install_writes_agent_shortcuts,

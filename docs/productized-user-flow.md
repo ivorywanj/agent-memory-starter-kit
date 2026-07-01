@@ -1,6 +1,6 @@
 # Productized User Flow
 
-This document defines the simple user flow and measurable acceptance criteria for Agent Memory Starter Kit.
+This document defines the simple user flow and measurable acceptance criteria for JourneyMem.
 
 ## Goal
 

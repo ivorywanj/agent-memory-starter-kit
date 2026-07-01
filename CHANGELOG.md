@@ -35,7 +35,7 @@
 
 ## v0.1.0
 
-- Initial public starter kit.
+- Initial public release.
 - CLI initializer for Markdown memory runtimes.
 - `remember -> recall -> improve -> forget` local memory loop.
 - Public fixture tests, memory guard, and release scan.

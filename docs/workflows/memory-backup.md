@@ -28,7 +28,7 @@ memory backup
 Optional explicit output:
 
 ```bash
-memory backup --output ./agent-memory-backup.zip
+memory backup --output ./journeymem-backup.zip
 ```
 
 ## Pass Criteria

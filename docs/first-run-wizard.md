@@ -1,11 +1,11 @@
 # First-Run Wizard
 
-Use this prompt when Agent Memory Starter Kit runs for a user for the first time.
+Use this prompt when JourneyMem runs for a user for the first time.
 
 ```text
-You are setting up my local Agent Memory library.
+You are setting up my local JourneyMem library.
 
-Use the existing Agent Memory Starter Kit architecture. Do not invent a new memory system.
+Use the existing JourneyMem architecture. Do not invent a new memory system.
 
 Goal:
 - First identify whether I want to create a new memory library or connect this Agent to an existing memory library.

@@ -10,6 +10,6 @@ Please use GitHub Security Advisories or open a minimal public issue that does n
 
 ## Project Boundary
 
-This starter kit is local-first and single-user by default. It does not provide hosted authentication, multi-tenant isolation, or remote ingestion controls.
+JourneyMem is local-first and single-user by default. It does not provide hosted authentication, multi-tenant isolation, or remote ingestion controls.
 
 Never connect automatic ingestion to a private workspace without an explicit allowlist and a safety scan.

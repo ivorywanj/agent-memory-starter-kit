@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lightweight remember/recall/improve/forget runtime for Agent Memory."""
+"""Lightweight remember/recall/improve/forget runtime for JourneyMem."""
 
 from __future__ import annotations
 
@@ -84,15 +84,15 @@ INIT_DEFAULTS = {
 AGENT_BRIDGE_TARGETS = {
     "codex": Path("AGENTS.md"),
     "claude": Path("CLAUDE.md"),
-    "cursor": Path(".cursor/rules/agent-memory.mdc"),
-    "generic": Path("AGENT_MEMORY.md"),
+    "cursor": Path(".cursor/rules/journeymem.mdc"),
+    "generic": Path("JOURNEYMEM.md"),
 }
 AGENT_INSTALL_TARGETS = ("codex", "claude", "cursor", "generic")
-CODEX_MARKETPLACE_NAME = "agent-memory-starter-kit-local"
-CODEX_PLUGIN_NAME = "agent-memory-starter-kit"
+CODEX_MARKETPLACE_NAME = "journeymem-local"
+CODEX_PLUGIN_NAME = "journeymem"
 CODEX_PLUGIN_VERSION = "0.1.1"
-CODEX_CONFIG_BEGIN = "# BEGIN Agent Memory Starter Kit plugin"
-CODEX_CONFIG_END = "# END Agent Memory Starter Kit plugin"
+CODEX_CONFIG_BEGIN = "# BEGIN JourneyMem plugin"
+CODEX_CONFIG_END = "# END JourneyMem plugin"
 CODEX_COMMANDS = ("memory", "memory-new", "memory-connect", "memory-backup")
 AGENT_LABELS = {
     "codex": "Codex",
@@ -139,7 +139,7 @@ def memory_script() -> Path:
 
 
 def user_default_root() -> Path:
-    return Path.cwd() / "agent-memory"
+    return Path.cwd() / "journeymem"
 
 
 def runtime_root(root: Path) -> Path:
@@ -346,9 +346,9 @@ def agent_bridge_text(root: Path, agent: str) -> str:
     root_text = str(root)
     memory_cmd = shlex.quote(str(memory_script()))
     root_arg = shlex.quote(root_text)
-    return f"""# Agent Memory Bridge
+    return f"""# JourneyMem Bridge
 
-This {label} workspace uses a shared Agent Memory runtime.
+This {label} workspace uses a shared JourneyMem memory library.
 
 Runtime root:
 
@@ -398,7 +398,7 @@ def agent_connection_text(root: Path, agent: str) -> str:
     root_text = str(root)
     memory_cmd = shlex.quote(str(memory_script()))
     root_arg = shlex.quote(root_text)
-    return f"""# Agent Memory Connection
+    return f"""# JourneyMem Connection
 
 This {label} workspace uses this shared memory library:
 
@@ -446,9 +446,9 @@ Safety:
 def command_helper_text(root: Path) -> str:
     memory_cmd = shlex.quote(str(memory_script()))
     root_arg = shlex.quote(str(root))
-    return f"""# Agent Memory Commands
+    return f"""# JourneyMem Commands
 
-Use these shortcuts when the user asks for Agent Memory setup, connection, or backup.
+Use these shortcuts when the user asks for JourneyMem setup, connection, or backup.
 
 Stable text entry for all Agents:
 
@@ -546,15 +546,15 @@ Do not store or print secrets.
 def codex_skill_text(root: Path) -> str:
     helper = command_helper_text(root)
     return f"""---
-name: agent-memory
-description: Use when the user says Agent Memory, memory, memory new, memory connect, memory backup, or asks to set up, connect, share, or back up an Agent Memory library.
+name: journeymem
+description: Use when the user says JourneyMem, memory, memory new, memory connect, memory backup, or asks to set up, connect, share, or back up a JourneyMem library.
 ---
 
-# Agent Memory
+# JourneyMem
 
 ## When To Use
 
-Use this skill when the user says `Agent Memory`, `memory`, `memory new`, `memory connect`, `memory backup`, or asks to set up, connect, share, or back up an Agent Memory library.
+Use this skill when the user says `JourneyMem`, `memory`, `memory new`, `memory connect`, `memory backup`, or asks to set up, connect, share, or back up a JourneyMem library.
 
 ## Instructions
 
@@ -567,7 +567,7 @@ def codex_command_text(root: Path, command: str) -> str:
     root_arg = shlex.quote(str(root))
     if command == "memory":
         return f"""---
-description: Show Agent Memory menu or run new/connect/backup
+description: Show JourneyMem menu or run new/connect/backup
 argument-hint: [new|connect|backup]
 allowed-tools: Bash
 ---
@@ -584,7 +584,7 @@ Route the request exactly:
 - `backup`: run `{memory_cmd} --root {root_arg} backup`.
 
 If arguments are unclear, show the two first-use choices (`memory new` and `memory connect`) and mention `memory backup` as a separate available command. Do not invent another command.
-Follow the response style rules in the Agent Memory skill/helper text. Do not expose internal setup steps. Do not ask the user to hand-edit memory files. Do not store or print secrets.
+Follow the response style rules in the JourneyMem skill/helper text. Do not expose internal setup steps. Do not ask the user to hand-edit memory files. Do not store or print secrets.
 """
 
     command_map = {
@@ -612,7 +612,7 @@ Run this command:
 {command_map[command]}
 ```
 
-Follow the response style rules in the Agent Memory skill/helper text:
+Follow the response style rules in the JourneyMem skill/helper text:
 
 - `memory new`: ask exactly one question at a time and do not show internal setup steps.
 - `memory connect`: first ask whether the user already has a memory library on this computer; say same-machine sharing needs no import; do not describe migration or copying.
@@ -626,21 +626,21 @@ def codex_plugin_manifest_text() -> str:
     manifest = {
         "name": CODEX_PLUGIN_NAME,
         "version": CODEX_PLUGIN_VERSION,
-        "description": "Agent Memory Starter Kit shortcuts for creating, connecting, and backing up a local memory library.",
-        "author": {"name": "Agent Memory Starter Kit contributors"},
+        "description": "JourneyMem shortcuts for creating, connecting, and backing up a local memory library.",
+        "author": {"name": "JourneyMem contributors"},
         "repository": "https://github.com/ivorywanj/agent-memory-starter-kit",
         "license": "MIT",
         "keywords": ["memory", "agent", "onboarding", "local-first"],
         "skills": "./skills/",
         "interface": {
-            "displayName": "Agent Memory",
+            "displayName": "JourneyMem",
             "shortDescription": "Local-first memory shortcuts for coding agents",
             "longDescription": "Create, connect, and back up a local memory library for Codex and other coding agents.",
-            "developerName": "Agent Memory Starter Kit contributors",
+            "developerName": "JourneyMem contributors",
             "category": "Developer Tools",
             "capabilities": ["Interactive", "Read", "Write"],
             "websiteURL": "https://github.com/ivorywanj/agent-memory-starter-kit",
-            "defaultPrompt": ["Set up Agent Memory"],
+            "defaultPrompt": ["Set up JourneyMem"],
             "brandColor": "#10A37F",
         },
     }
@@ -651,13 +651,13 @@ def codex_marketplace_manifest_text() -> str:
     manifest = {
         "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
         "name": CODEX_MARKETPLACE_NAME,
-        "description": "Local marketplace for Agent Memory Starter Kit.",
-        "owner": {"name": "Agent Memory Starter Kit contributors"},
+        "description": "Local marketplace for JourneyMem.",
+        "owner": {"name": "JourneyMem contributors"},
         "plugins": [
             {
                 "name": CODEX_PLUGIN_NAME,
-                "description": "Agent Memory Starter Kit shortcuts for creating, connecting, and backing up a local memory library.",
-                "author": {"name": "Agent Memory Starter Kit contributors"},
+                "description": "JourneyMem shortcuts for creating, connecting, and backing up a local memory library.",
+                "author": {"name": "JourneyMem contributors"},
                 "category": "development",
                 "source": f"./plugins/{CODEX_PLUGIN_NAME}",
                 "homepage": "https://github.com/ivorywanj/agent-memory-starter-kit",
@@ -685,7 +685,7 @@ Run:
 {command_map[command]}
 ```
 
-Follow the response style rules in the Agent Memory command helper:
+Follow the response style rules in the JourneyMem command helper:
 
 - `memory new`: ask exactly one question at a time and do not show internal setup steps.
 - `memory connect`: first ask whether the user already has a memory library on this computer; say same-machine sharing needs no import; do not describe migration or copying.
@@ -697,7 +697,7 @@ Do not ask the user to hand-edit memory files. Do not store or print secrets.
 
 def cursor_rule_text(root: Path) -> str:
     return f"""---
-description: Agent Memory shortcuts
+description: JourneyMem shortcuts
 alwaysApply: true
 ---
 
@@ -710,7 +710,7 @@ def generic_command_text(root: Path) -> str:
 
 
 def codex_marketplace_dir(home: Path) -> Path:
-    return home / ".codex/agent-memory-starter-kit-marketplace"
+    return home / ".codex/journeymem-marketplace"
 
 
 def codex_plugin_root(home: Path) -> Path:
@@ -835,9 +835,9 @@ def install_files_for(root: Path, agent: str, workspace: Path, home: Path) -> li
         plugin_root = codex_plugin_root(home)
         files = [
             InstallFile(agent, codex_marketplace_dir(home) / ".claude-plugin/marketplace.json", codex_marketplace_manifest_text()),
-            InstallFile(agent, home / ".codex/skills/agent-memory/SKILL.md", codex_skill_text(root)),
+            InstallFile(agent, home / ".codex/skills/journeymem/SKILL.md", codex_skill_text(root)),
             InstallFile(agent, plugin_root / ".codex-plugin/plugin.json", codex_plugin_manifest_text()),
-            InstallFile(agent, plugin_root / "skills/agent-memory/SKILL.md", codex_skill_text(root)),
+            InstallFile(agent, plugin_root / "skills/journeymem/SKILL.md", codex_skill_text(root)),
         ]
         files.extend(InstallFile(agent, plugin_root / "commands" / f"{command}.md", codex_command_text(root, command)) for command in CODEX_COMMANDS)
         return files
@@ -850,9 +850,9 @@ def install_files_for(root: Path, agent: str, workspace: Path, home: Path) -> li
             InstallFile(agent, command_dir / "memory-backup.md", claude_command_text(root, "memory-backup")),
         ]
     if agent == "cursor":
-        return [InstallFile(agent, workspace / ".cursor/rules/agent-memory-commands.mdc", cursor_rule_text(root))]
+        return [InstallFile(agent, workspace / ".cursor/rules/journeymem-commands.mdc", cursor_rule_text(root))]
     if agent == "generic":
-        return [InstallFile(agent, workspace / "AGENT_MEMORY_COMMANDS.md", generic_command_text(root))]
+        return [InstallFile(agent, workspace / "JOURNEYMEM_COMMANDS.md", generic_command_text(root))]
     raise ValueError(f"unsupported agent: {agent}")
 
 
@@ -888,7 +888,7 @@ def command_install(args: argparse.Namespace) -> int:
         config_path = upsert_codex_config(home, args.force)
         codex_cli_status, codex_cli_output = install_codex_plugin_with_cli(home)
     installed_agents = ", ".join(AGENT_LABELS[agent] for agent in agents)
-    print("Memory shortcuts installed")
+    print("JourneyMem shortcuts installed")
     print(f"Installed for: {installed_agents}")
     print(f"Workspace: {workspace}")
     print(f"Memory library: {root}")
@@ -1352,7 +1352,7 @@ def should_backup_file(path: Path, root: Path) -> bool:
 def default_backup_path(root: Path, backup_dir: Path | None) -> Path:
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     target_dir = backup_dir.expanduser() if backup_dir else root.parent / "memory-backups"
-    return target_dir / f"agent-memory-{stamp}.zip"
+    return target_dir / f"journeymem-{stamp}.zip"
 
 
 def command_backup(args: argparse.Namespace) -> int:

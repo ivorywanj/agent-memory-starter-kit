@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for improving Agent Memory Starter Kit.
+Thanks for improving JourneyMem.
 
 ## Development Checks
 

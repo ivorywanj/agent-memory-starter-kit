@@ -17,7 +17,7 @@ scripts/memory install --agent all --workspace ./my-project
 | Agent | Helper file |
 |---|---|
 | Shell | shared executable `memory` command |
-| Codex | local plugin package and user-level Agent Memory skill |
+| Codex | local plugin package and user-level JourneyMem skill |
 | Claude Code | project command files |
 | Cursor | project rule helper |
 | Generic Agent | project command helper |

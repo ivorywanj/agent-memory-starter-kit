@@ -7,9 +7,9 @@ Use this lower-level command when the same memory library should be shared by Co
 ## Command
 
 ```bash
-scripts/memory --root ./my-agent-memory share --agent codex --workspace ./my-project
-scripts/memory --root ./my-agent-memory share --agent claude --workspace ./my-project
-scripts/memory --root ./my-agent-memory share --agent cursor --workspace ./my-project
+scripts/memory --root ./my-journeymem share --agent codex --workspace ./my-project
+scripts/memory --root ./my-journeymem share --agent claude --workspace ./my-project
+scripts/memory --root ./my-journeymem share --agent cursor --workspace ./my-project
 ```
 
 Default pointer targets:
@@ -18,8 +18,8 @@ Default pointer targets:
 |---|---|
 | `codex` | `AGENTS.md` |
 | `claude` | `CLAUDE.md` |
-| `cursor` | `.cursor/rules/agent-memory.mdc` |
-| `generic` | `AGENT_MEMORY.md` |
+| `cursor` | `.cursor/rules/journeymem.mdc` |
+| `generic` | `JOURNEYMEM.md` |
 
 Use `--target <file>` for an explicit file path.
 

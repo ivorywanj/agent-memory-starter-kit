@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TEXT_SUFFIXES = {".md", ".py", ".json", ".txt", ".yml", ".yaml"}
+TEXT_SUFFIXES = {".md", ".mdc", ".py", ".json", ".txt", ".yml", ".yaml"}
 PRIVATE_MARKERS = ("Wan" + "jia", "万" + "家", "Journey" + "Gen", "/Users/" + "wanj", "cowork " + "playground")
 SECRET_PATTERNS = (
     ("api_key", re.compile("s" + "k-[A-Za-z0-9_-]{20,}")),
@@ -20,6 +20,12 @@ SECRET_PATTERNS = (
 SECRET_PATTERN_EXEMPT_FILES = {"scripts/memory_guard.py", "scripts/public_release_check.py"}
 REQUIRED_FILES = (
     ".github/workflows/ci.yml",
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".cursorrules",
+    ".cursor/rules/journeymem-first-run.mdc",
+    ".trae/rules/journeymem-first-run.md",
+    "JOURNEYMEM.md",
     "README.md",
     "LICENSE",
     "SECURITY.md",
@@ -45,7 +51,7 @@ REQUIRED_FILES = (
     "docs/workflows/memory-share.md",
 )
 README_REQUIRED_SNIPPETS = (
-    "Local-first memory library for coding agents.",
+    "A local memory library for AI agents.",
     "## Quickstart",
     "scripts/memory install --agent all --workspace ./your-project",
     "Type:",
@@ -56,7 +62,7 @@ README_REQUIRED_SNIPPETS = (
     "A fresh clone does not mean the user chose new setup",
     "before running `memory new` or `memory connect`",
     "real `memory` shell command",
-    "[$agent-memory](<generated-local-skill-path>/SKILL.md)",
+    "[$journeymem](<generated-local-skill-path>/SKILL.md)",
     "Fallback for troubleshooting only:",
     "./scripts/memory new",
     "For first-time setup, the Agent should not explain setup internals or ask where to store the files.",
@@ -81,6 +87,23 @@ README_REQUIRED_SNIPPETS = (
     "## Validation",
     "## Benchmark Evidence",
     "## V1 Limits",
+)
+AGENTS_REQUIRED_SNIPPETS = (
+    "# JourneyMem Agent Instructions",
+    "do not summarize the repository structure",
+    "I can help you use JourneyMem.",
+    "`memory new` - Create a new memory library",
+    "`memory connect` - Connect this Agent to an existing memory library",
+    "Do not start `memory new` until the user chooses create/new.",
+    "Do not ask \"What should Agents call you?\" before that choice.",
+)
+AGENT_INSTRUCTION_FILES = (
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".cursorrules",
+    ".cursor/rules/journeymem-first-run.mdc",
+    ".trae/rules/journeymem-first-run.md",
+    "JOURNEYMEM.md",
 )
 README_FIRST_SCREEN_BLOCKED_TERMS = (
     "runtime",
@@ -121,6 +144,14 @@ def main() -> int:
         before_fallback = readme_text.split("Fallback for troubleshooting only:", 1)[0]
         if "./scripts/memory new" in before_fallback:
             findings.append("README.md promotes ./scripts/memory new before fallback")
+    for rel in AGENT_INSTRUCTION_FILES:
+        agents_file = ROOT / rel
+        if not agents_file.exists():
+            continue
+        agents_text = agents_file.read_text(encoding="utf-8", errors="replace")
+        for snippet in AGENTS_REQUIRED_SNIPPETS:
+            if snippet not in agents_text:
+                findings.append(f"{rel} missing snippet: {snippet}")
     for path in iter_text_files():
         rel = path.relative_to(ROOT)
         text = path.read_text(encoding="utf-8", errors="replace")

@@ -1,4 +1,4 @@
-# Public Memory Template
+# JourneyMem Public Memory Template
 
 Use this template as a demo fixture with the CLI setup command:
 
@@ -6,9 +6,9 @@ Use this template as a demo fixture with the CLI setup command:
 scripts/memory new --answers templates/public/answers.example.json
 ```
 
-For a real user, prefer the Agent-led first-run wizard in `docs/first-run-wizard.md`. The first question should identify whether the user wants to create a memory library, connect this Agent, or create a backup. The user should not hand-write Markdown files.
+For a real user, prefer the Agent-led first-run wizard in `docs/first-run-wizard.md`. The first question should identify whether the user wants to create a memory library or connect this Agent to an existing memory library. A fresh clone does not mean the user chose new setup. The user should not hand-write Markdown files.
 
-If the user is new, the CLI creates the starter memory library. Then Agents maintain it through:
+If the user is new, the CLI creates the JourneyMem library. Then Agents maintain it through:
 
 ```text
 remember -> recall -> improve -> forget
@@ -22,4 +22,4 @@ scripts/memory connect --agent claude --workspace ./my-project
 scripts/memory connect --agent cursor --workspace ./my-project
 ```
 
-Before publishing this starter kit, keep private memory data out of this directory. Only fake users, fake projects, and fake paths belong here.
+Before publishing JourneyMem, keep private memory data out of this directory. Only fake users, fake projects, and fake paths belong here.
