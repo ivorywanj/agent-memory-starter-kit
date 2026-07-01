@@ -466,6 +466,12 @@ Slash-capable Agents may also support:
 
 Some Agents may not show custom slash commands in their command picker. Treat `memory`, `memory new`, `memory connect`, and `memory backup` as the reliable entry points and run the matching command below.
 
+Fresh clone rule:
+
+- If the user only asks you to clone this repo or run `git clone ...` and `cd agent-memory-starter-kit`, do not infer that they want `memory new`.
+- After clone and cd, stop and ask the two-choice first-use question: create a new memory library or connect this Agent to an existing memory library.
+- Run `memory new` only after the user chooses create/new. Run `memory connect` only after the user chooses connect/existing.
+
 ## Response Style
 
 Keep the visible response short and user-facing. Do not show internal analysis, setup strategy, repository status, implementation notes, temporary answer-file strategy, batch setup details, or a full questionnaire.
@@ -529,8 +535,9 @@ Fallback if `memory` is not on PATH:
 {memory_cmd} --root {root_arg} backup
 ```
 
-If the user is new, start with `memory new` or `/memory new` where slash commands are supported.
-If the user already has a memory library, start with `memory connect` or `/memory connect` where slash commands are supported.
+If the user is new only because they just cloned the repo, do not start `memory new` automatically. Ask the two-choice first-use question first.
+If the user chooses create/new, start with `memory new` or `/memory new` where slash commands are supported.
+If the user chooses connect/existing, start with `memory connect` or `/memory connect` where slash commands are supported.
 Do not ask the user to hand-edit memory files.
 Do not store or print secrets.
 """

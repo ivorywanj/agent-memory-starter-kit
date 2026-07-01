@@ -46,6 +46,7 @@ def assert_entry_response_style_rules(text: str) -> None:
         "ask exactly one question at a time",
         "do not show internal analysis",
         "do not ask where to store the memory library",
+        "do not infer that they want `memory new`",
         "first ask whether the user already has a memory library on this computer",
         "for same-machine sharing, say no import is needed",
         "a confident memory library candidate must contain",

@@ -13,6 +13,8 @@ git clone https://github.com/ivorywanj/agent-memory-starter-kit.git
 cd agent-memory-starter-kit
 ```
 
+If an Agent is doing this for you, it should stop after clone and cd. A fresh clone does not mean the user chose new setup. The Agent must ask whether you want to create a new memory library or connect this Agent to an existing memory library before running `memory new` or `memory connect`.
+
 Install the Agent shortcuts into a project workspace:
 
 ```bash
@@ -109,6 +111,8 @@ The onboarding flow starts by identifying the user's first-use intent:
 Do you want to create a new memory library, or connect this Agent to an existing memory library?
 ```
 
+Fresh clone rule: after `git clone` and `cd agent-memory-starter-kit`, the Agent must ask this two-choice question. It must not start `memory new` automatically.
+
 If the user is new, the first visible setup response should be:
 
 ```text
@@ -129,6 +133,7 @@ Project workspaces are routing hints, not ingestion permission. The setup record
 See `docs/productized-user-flow.md` for the user-flow design and measurable acceptance criteria. The core gates are:
 
 - `memory` shows exactly two first-use choices: create a new memory library or connect this Agent to an existing memory library.
+- A fresh clone followed by `cd agent-memory-starter-kit` does not trigger `memory new`; the Agent asks the two-choice first-use question first.
 - `scripts/memory install --agent all` writes a shared `memory` shell command plus Codex, Claude Code, Cursor, and generic command helpers.
 - Codex install writes a local plugin package and enables it in `~/.codex/config.toml`.
 - `memory new` asks no more than seven setup questions, plus an optional project-folder follow-up.

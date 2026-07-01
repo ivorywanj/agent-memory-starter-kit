@@ -18,6 +18,7 @@ Goal:
 - Do not ask where to store the memory library during new setup. Use the default.
 - For new setup, the first setup question must be: "What should Agents call you?"
 - After the correct branch is clear, run memory new or memory connect. Run memory backup only when I explicitly ask for backup.
+- If I only ask you to clone this repo and `cd agent-memory-starter-kit`, do not infer that I want `memory new`. Stop after clone/cd and ask Question 0.
 
 Rules:
 - If I am unsure, let me say "skip" or "use default".
@@ -34,6 +35,12 @@ What do you want to do?
 Choose one:
 - 1. Create a memory library
 - 2. Connect this Agent
+
+Fresh clone rule:
+- `git clone https://github.com/ivorywanj/agent-memory-starter-kit.git` plus `cd agent-memory-starter-kit` is not a choice.
+- After clone and cd, ask Question 0.
+- Do not run `memory new` until the user chooses option 1.
+- Do not run `memory connect` until the user chooses option 2.
 
 If the user chooses 2, "connect", "memory connect", or "/memory connect":
 1. Do not ask profile, preference, or project onboarding questions again.
