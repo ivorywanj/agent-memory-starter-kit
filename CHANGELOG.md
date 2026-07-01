@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.4
+
+- Added user-facing `/memory new`, `/memory connect`, and `/memory backup` shortcuts.
+- Added productized user-flow documentation with measurable T21-T26 acceptance criteria.
+- Added public fixture tests for quick entry, cross-Agent connection, and zip backup exclusions.
+- Strengthened first-screen terminology checks for external-user onboarding.
+
 ## v0.1.3
 
 - Added `memory share` for pointer-only bridge files across Codex, Claude Code, Cursor, and generic Agents.

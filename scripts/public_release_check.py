@@ -31,6 +31,7 @@ REQUIRED_FILES = (
     "scripts/public_release_check.py",
     "tests/test_public_package.py",
     "templates/public/answers.example.json",
+    "docs/releases/v0.1.4.md",
     "docs/releases/v0.1.1.md",
     "docs/releases/v0.1.2.md",
     "docs/releases/v0.1.3.md",
