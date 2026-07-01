@@ -1,6 +1,8 @@
-# /memory-init
+# Developer command: memory init
 
-Use this when a new user needs a starter memory runtime and should not hand-write Markdown files.
+User-facing setup should use `/memory new`.
+
+Use this lower-level command in tests or automation when a new user needs a starter memory library and should not hand-write Markdown files.
 
 ## Command
 
@@ -23,7 +25,7 @@ scripts/memory --root ./my-agent-memory init \
 
 ## Behavior
 
-- Creates `AGENTS.md`, `ONBOARDING.md`, `CROSS_AGENT.md`, hot memory, source-of-truth skeletons, project ledger, and memory buffer READMEs.
+- Creates `AGENTS.md`, `ONBOARDING.md`, `CROSS_AGENT.md`, hot memory, authoritative skeletons, project ledger, and memory buffer READMEs.
 - Runs safety scanning before writing generated files.
 - Refuses to overwrite existing starter files unless `--force` is passed.
 - Prints a short summary and correction syntax instead of asking the user to edit Markdown.

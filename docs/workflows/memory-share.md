@@ -1,6 +1,8 @@
-# /memory-share
+# Developer command: memory share
 
-Use this when the same memory runtime should be shared by Codex, Claude Code, Cursor, or another local-file-reading Agent.
+User-facing sharing should use `/memory connect`.
+
+Use this lower-level command when the same memory library should be shared by Codex, Claude Code, Cursor, or another local-file-reading Agent.
 
 ## Command
 
@@ -10,7 +12,7 @@ scripts/memory --root ./my-agent-memory share --agent claude --workspace ./my-pr
 scripts/memory --root ./my-agent-memory share --agent cursor --workspace ./my-project
 ```
 
-Default bridge targets:
+Default pointer targets:
 
 | Agent | Target |
 |---|---|
@@ -23,15 +25,15 @@ Use `--target <file>` for an explicit file path.
 
 Use `--append` when the target file already exists and should keep its current content.
 
-Use `--print` to preview the bridge without writing files.
+Use `--print` to preview the pointer text without writing files.
 
 ## Behavior
 
-- Writes a small bridge file that points to the shared memory root.
-- Does not copy user profile, project facts, hot memory, session cache, history, or deprecated audit into the target workspace.
+- Writes a small pointer file that points to the shared memory library.
+- Does not copy user profile, project facts, hot memory, observed memory, history, or audit records into the target workspace.
 - Refuses to overwrite an existing target unless `--force` or `--append` is explicit.
-- Records created bridges in `memory/agents/registry.json`.
+- Records created pointers in `memory/agents/registry.json`.
 
 ## Rule
 
-There is one source of truth: the shared Markdown runtime. Agent-specific files are pointers only.
+There is one final record: the shared Markdown memory library. Agent-specific files are pointers only.

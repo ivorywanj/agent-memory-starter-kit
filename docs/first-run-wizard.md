@@ -3,18 +3,20 @@
 Use this prompt when Agent Memory Starter Kit runs for a user for the first time.
 
 ```text
-You are setting up my local Agent Memory runtime.
+You are setting up my local Agent Memory library.
 
 Use the existing Agent Memory Starter Kit architecture. Do not invent a new memory system.
 
 Goal:
-- First identify whether I am a new setup or sharing an existing runtime.
+- First identify whether I am new, connecting this Agent to an existing memory library, or creating a backup.
 - For a new setup, learn my basic profile and preferences quickly.
-- For sharing, connect an existing memory runtime to another Agent/workspace without re-asking personal preferences.
+- For connecting, link this Agent to an existing memory library without re-asking personal preferences.
+- For backup, create a zip and do not change memory content.
 - Ask one question at a time.
 - Help me answer with examples and defaults.
 - Do not ask me to hand-write Markdown.
-- After the correct branch is clear, run scripts/memory init or scripts/memory share.
+- Do not ask where to store the memory library during new setup. Use the default.
+- After the correct branch is clear, run scripts/memory new, scripts/memory connect, or scripts/memory backup.
 
 Rules:
 - If I am unsure, let me say "skip" or "use default".
@@ -24,23 +26,31 @@ Rules:
 - Do not store secrets, tokens, database URLs, webhook URLs, private keys, raw sessions, customer data, or account data.
 
 Question 0:
-Are you setting up Agent Memory for the first time, or connecting an existing memory runtime to another Agent/workspace?
+What do you want to do?
 
 Choose one:
-- New setup: I do not have a memory runtime yet.
-- Share existing runtime: I already have a memory runtime and want Codex / Claude Code / Cursor / another Agent to use it.
+- 1. Create a memory library
+- 2. Connect this Agent
+- 3. Back up a memory library
 
-If the user chooses "share existing runtime":
+If the user chooses 2, "connect", or "/memory connect":
 1. Do not ask profile, preference, or project onboarding questions again.
-2. Ask for the existing memory runtime path. Example: ./my-agent-memory
-3. Ask which Agent to connect: codex / claude / cursor / generic.
-4. Ask for the target workspace folder. Example: ./my-project
-5. Ask whether the target already has an Agent rules file. If yes, use --append unless the user explicitly wants overwrite.
-6. Run scripts/memory share with those answers.
-7. Report that a pointer-only bridge was created. Do not copy user profile, project facts, hot memory, session cache, history, or deprecated audit into the workspace.
-8. Stop.
+2. Try to find an existing memory library in the current folder or common nearby folder first.
+3. If no memory library is found, ask the user to provide the folder or a backup zip from another computer.
+4. Detect the current Agent automatically. Only ask codex / claude / cursor / generic if detection fails.
+5. Ask for the project workspace folder only if it is not already the current workspace.
+6. If the target already has an Agent rules file, use --append unless the user explicitly wants overwrite.
+7. Run scripts/memory connect with those answers.
+8. Report that a connection file was created. Do not copy user profile, project facts, hot memory, observed memory, history, or audit records into the workspace.
+9. Stop.
 
-If the user chooses "new setup", continue:
+If the user chooses 3, "backup", or "/memory backup":
+1. Run scripts/memory backup.
+2. Report the generated zip file path.
+3. Explain that secrets, temporary dialogue data, search indexes, raw runs, drafts, and local database files were excluded.
+4. Stop.
+
+If the user chooses 1, "new", or "/memory new", continue:
 
 Question 1/7:
 What should Agents call you?
@@ -64,6 +74,9 @@ Answer in one sentence. Examples:
 
 Question 4/7:
 What are your current 1-3 projects? If a project has a workspace folder, include it.
+
+If the user does not mention a folder, ask:
+"Do you want to attach a work folder for this project? You can paste a folder path, or say skip."
 
 Use this format when you know the folder:
 Project name | workspace folder
@@ -113,7 +126,7 @@ Default recommended:
 
 After collecting answers:
 1. Summarize what will be recorded.
-2. Run scripts/memory init with the user's answers.
+2. Run scripts/memory new with the user's answers.
 3. Report only the summary and correction syntax:
    - "第 1 条改成..."
    - "删除第 2 条"
@@ -127,7 +140,7 @@ Use `--project "Project name | workspace folder"` when a workspace pointer is pr
 Example:
 
 ```bash
-scripts/memory --root ./my-agent-memory init \
+scripts/memory new \
   --name "Alex" \
   --language "English" \
   --work-type "indie product builder" \

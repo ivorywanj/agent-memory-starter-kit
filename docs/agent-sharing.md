@@ -1,25 +1,33 @@
 # Agent Sharing
 
-Use `memory share` when Codex, Claude Code, Cursor, or another local-file-reading Agent should use the same memory runtime.
+Use `/memory connect` when Codex, Claude Code, Cursor, or another local-file-reading Agent should use the same memory library.
 
 ## Goal
 
-Different Agents should share one source of truth instead of each keeping a private copy of user preferences, project facts, and lessons.
+Different Agents should use the same memory library instead of each keeping a private copy of user preferences, project facts, and lessons.
 
 ```text
-shared memory root
--> pointer-only bridge file per Agent workspace
+shared memory library
+-> connection file per Agent workspace
 -> same startup path
 -> same remember / recall / improve / forget loop
 ```
 
 ## Commands
 
+User-facing flow:
+
+```text
+/memory connect
+```
+
+Agent command:
+
 ```bash
-scripts/memory --root ./my-agent-memory share --agent codex --workspace ./my-project
-scripts/memory --root ./my-agent-memory share --agent claude --workspace ./my-project
-scripts/memory --root ./my-agent-memory share --agent cursor --workspace ./my-project
-scripts/memory --root ./my-agent-memory share --agent generic --workspace ./my-project
+scripts/memory --root ./my-agent-memory connect --agent codex --workspace ./my-project
+scripts/memory --root ./my-agent-memory connect --agent claude --workspace ./my-project
+scripts/memory --root ./my-agent-memory connect --agent cursor --workspace ./my-project
+scripts/memory --root ./my-agent-memory connect --agent generic --workspace ./my-project
 ```
 
 Default targets:
@@ -35,6 +43,6 @@ Use `--target <file>` for an explicit target, `--append` for existing files, and
 
 ## Safety
 
-Bridge files are pointer-only. They must not include user profile details, project facts, hot memory content, session cache, raw history, deprecated audit, secrets, or customer data.
+Connection files are pointer-only. They must not include user profile details, project facts, hot memory content, observed memory, raw history, audit records, secrets, or customer data.
 
-The shared Markdown runtime remains the source of truth.
+Markdown files in the shared memory library remain the final record.

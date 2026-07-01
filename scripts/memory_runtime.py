@@ -8,7 +8,9 @@ import hashlib
 import json
 import re
 import shlex
+import os
 import sys
+import zipfile
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -89,6 +91,13 @@ AGENT_LABELS = {
     "cursor": "Cursor",
     "generic": "Generic Agent",
 }
+BACKUP_EXCLUDED_PARTS = {".git", "__pycache__", ".venv", "venv", "node_modules"}
+BACKUP_EXCLUDED_PREFIXES = (
+    "memory/runtime",
+    "memory/history/runtime",
+    "content/data/memory-benchmark/runs",
+)
+BACKUP_EXCLUDED_SUFFIXES = {".sqlite", ".sqlite3", ".db", ".db-wal", ".db-shm"}
 
 
 @dataclass
@@ -113,6 +122,10 @@ def now_iso() -> str:
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
+
+
+def user_default_root() -> Path:
+    return Path.cwd() / "agent-memory"
 
 
 def runtime_root(root: Path) -> Path:
@@ -300,6 +313,20 @@ def bridge_target_for(agent: str, workspace: Path | None, explicit_target: Path 
     return (root / "memory/agents" / f"{agent}.md").resolve()
 
 
+def detect_agent() -> str | None:
+    explicit = os.environ.get("AGENT_MEMORY_AGENT", "").strip().lower()
+    if explicit in AGENT_BRIDGE_TARGETS:
+        return explicit
+    env = {key.upper(): value for key, value in os.environ.items() if value}
+    if any(key.startswith("CODEX") for key in env):
+        return "codex"
+    if any(key.startswith("CLAUDE") for key in env):
+        return "claude"
+    if any("CURSOR" in key or "CURSOR" in value.upper() for key, value in env.items()):
+        return "cursor"
+    return None
+
+
 def agent_bridge_text(root: Path, agent: str) -> str:
     label = AGENT_LABELS[agent]
     root_text = str(root)
@@ -349,6 +376,56 @@ Safety:
 - Never store or print secrets, API keys, tokens, webhook URLs, database URLs, private keys, raw sessions, customer data, account data, cookies, or passwords.
 - Do not read the full runtime by default.
 - Do not read project workspaces unless the task specifically requires the relevant source files.
+"""
+
+
+def agent_connection_text(root: Path, agent: str) -> str:
+    label = AGENT_LABELS[agent]
+    root_text = str(root)
+    memory_cmd = shlex.quote(str(root / "scripts/memory"))
+    root_arg = shlex.quote(root_text)
+    return f"""# Agent Memory Connection
+
+This {label} workspace uses this shared memory library:
+
+```text
+{root_text}
+```
+
+Read first:
+
+```text
+{root_text}/AGENTS.md
+-> {root_text}/ONBOARDING.md
+-> {root_text}/memory/hot/USER.md
+-> {root_text}/memory/hot/MEMORY.md
+-> task-specific authoritative files only when needed
+```
+
+This file is a pointer only. Do not copy user profile, project facts, hot memory, observed memory, history, or audit records into this workspace file.
+
+Authority:
+
+- Markdown files in the memory library are the final record.
+- Hot memory is only a startup summary.
+- Platform memory and chat history are recall/evidence only.
+- Conflicts are resolved by checking the authoritative Markdown files.
+- New durable memory must go through `remember -> recall -> improve -> forget`.
+
+Useful commands:
+
+```bash
+{memory_cmd} --root {root_arg} recall --query "<query>" --context-only
+{memory_cmd} --root {root_arg} remember --session-id "<session>" --text "<explicit user correction>"
+{memory_cmd} --root {root_arg} improve --session-id "<session>"
+{memory_cmd} --root {root_arg} forget --instruction "<user correction>"
+```
+
+Safety:
+
+- Never store or print secrets, API keys, tokens, webhook URLs, database URLs, private keys, raw sessions, customer data, account data, cookies, or passwords.
+- Do not load every file by default.
+- Do not read project folders unless the task specifically requires the relevant source files.
 """
 
 
@@ -671,6 +748,145 @@ def command_init(args: argparse.Namespace) -> int:
     print("")
     print("Next Agent startup path:")
     print("AGENTS.md -> ONBOARDING.md -> memory/hot/USER.md -> memory/hot/MEMORY.md")
+    return 0
+
+
+def command_start(args: argparse.Namespace) -> int:
+    choice = (args.choice or "").strip().lower()
+    if not choice:
+        print_memory_menu()
+        return 0
+    if choice in {"1", "n", "new", "start"}:
+        init_args = argparse.Namespace(
+            root=args.root,
+            answers=args.answers,
+            name=args.name,
+            language=args.language,
+            work_type=args.work_type,
+            communication_style=args.communication_style,
+            project=args.project,
+            confirmation_rule=args.confirmation_rule,
+            never_store=args.never_store,
+            interactive=args.interactive,
+            force=args.force,
+        )
+        return command_init(init_args)
+    if choice in {"2", "c", "connect", "share"}:
+        connect_args = argparse.Namespace(
+            root=args.root,
+            agent=args.agent,
+            workspace=args.workspace,
+            target=args.target,
+            append=args.append,
+            force=args.force,
+            print_only=args.print_only,
+        )
+        return command_connect(connect_args)
+    if choice in {"3", "b", "backup"}:
+        backup_args = argparse.Namespace(root=args.root, output=args.output, backup_dir=args.backup_dir)
+        return command_backup(backup_args)
+    print("start_blocked: choose 1, 2, or 3")
+    return 1
+
+
+def print_memory_menu() -> None:
+    print("What do you want to do?")
+    print("1. Create a memory library")
+    print("2. Connect this Agent")
+    print("3. Back up a memory library")
+    print("")
+    print("In Agent chat, use:")
+    print("- /memory new")
+    print("- /memory connect")
+    print("- /memory backup")
+    print("")
+    print("Agent command equivalents:")
+    print("- scripts/memory new")
+    print("- scripts/memory connect")
+    print("- scripts/memory backup")
+
+
+def command_connect(args: argparse.Namespace) -> int:
+    agent = args.agent or detect_agent()
+    if not agent:
+        print("connect_needs_agent")
+        print("I could not identify the current Agent. Choose codex, claude, cursor, or generic.")
+        return 1
+    root = args.root
+    target = bridge_target_for(agent, args.workspace, args.target, root)
+    content = agent_connection_text(root, agent)
+    findings = guard_text(root, content + "\n" + str(target))
+    if findings:
+        print(f"connect_blocked: {findings[0].kind}")
+        return 1
+    if args.print_only:
+        print(content)
+        return 0
+    if target.exists() and not args.force and not args.append:
+        print("connect_blocked: target exists")
+        print(str(target))
+        print("Use --append to add a connection block or --force to overwrite.")
+        return 1
+    target.parent.mkdir(parents=True, exist_ok=True)
+    mode = "created"
+    if target.exists() and args.append:
+        existing = target.read_text(encoding="utf-8")
+        if "<!-- BEGIN AGENT MEMORY CONNECTION -->" in existing and not args.force:
+            print("connect_blocked: connection already present")
+            print(str(target))
+            return 1
+        text = existing.rstrip() + "\n\n<!-- BEGIN AGENT MEMORY CONNECTION -->\n" + content.rstrip() + "\n<!-- END AGENT MEMORY CONNECTION -->\n"
+        target.write_text(text, encoding="utf-8")
+        mode = "appended"
+    else:
+        target.write_text(content, encoding="utf-8")
+        mode = "overwritten" if args.force else "created"
+    write_agent_registry(root, agent, target, mode)
+    print("Current Agent connected")
+    print(f"Agent: {AGENT_LABELS[agent]}")
+    print(f"Connection file: {target}")
+    print(f"Memory library: {root}")
+    print("No profile, project facts, or long-term memory were copied into this workspace.")
+    return 0
+
+
+def should_backup_file(path: Path, root: Path) -> bool:
+    rel = rel_path(path, root)
+    if any(part in BACKUP_EXCLUDED_PARTS for part in path.parts):
+        return False
+    if path.name.startswith(".env") or "/.env" in f"/{rel}":
+        return False
+    if any(rel == prefix or rel.startswith(prefix + "/") for prefix in BACKUP_EXCLUDED_PREFIXES):
+        return False
+    if path.suffix in BACKUP_EXCLUDED_SUFFIXES:
+        return False
+    if rel.startswith("memory/hot/") and path.name.endswith(".draft.md"):
+        return False
+    return path.is_file()
+
+
+def default_backup_path(root: Path, backup_dir: Path | None) -> Path:
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    target_dir = backup_dir.expanduser() if backup_dir else root.parent / "memory-backups"
+    return target_dir / f"agent-memory-{stamp}.zip"
+
+
+def command_backup(args: argparse.Namespace) -> int:
+    root = args.root
+    findings = memory_guard.scan(memory_guard.DEFAULT_PATHS, root)
+    if findings:
+        print(f"backup_blocked: safety scan found {len(findings)} issue(s)")
+        return 1
+    output = (args.output.expanduser() if args.output else default_backup_path(root, args.backup_dir)).resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    files = [path for path in sorted(root.rglob("*")) if should_backup_file(path, root)]
+    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for path in files:
+            archive.write(path, rel_path(path, root))
+    print("Memory backup created")
+    print(f"File: {output}")
+    print(f"Files included: {len(files)}")
+    print("Excluded: secrets, local session data, search indexes, raw runs, and drafts.")
     return 0
 
 
@@ -1071,8 +1287,28 @@ def command_forget(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=repo_root())
-    sub = parser.add_subparsers(dest="command", required=True)
+    parser.add_argument("--root", type=Path, default=None)
+    sub = parser.add_subparsers(dest="command", required=False)
+
+    start = sub.add_parser("start")
+    start.add_argument("--choice", default=None, help="N=create, C=connect, B=backup.")
+    start.add_argument("--answers", type=Path, default=None)
+    start.add_argument("--name", default=None)
+    start.add_argument("--language", default=None)
+    start.add_argument("--work-type", default=None)
+    start.add_argument("--communication-style", default=None)
+    start.add_argument("--project", action="append", default=None)
+    start.add_argument("--confirmation-rule", action="append", default=None)
+    start.add_argument("--never-store", action="append", default=None)
+    start.add_argument("--interactive", action="store_true")
+    start.add_argument("--workspace", type=Path, default=None)
+    start.add_argument("--target", type=Path, default=None)
+    start.add_argument("--agent", choices=sorted(AGENT_BRIDGE_TARGETS), default=None)
+    start.add_argument("--append", action="store_true")
+    start.add_argument("--force", action="store_true")
+    start.add_argument("--print", dest="print_only", action="store_true")
+    start.add_argument("--output", type=Path, default=None)
+    start.add_argument("--backup-dir", type=Path, default=None)
 
     init = sub.add_parser("init")
     init.add_argument("--answers", type=Path, default=None, help="JSON answers for non-interactive initialization.")
@@ -1086,6 +1322,18 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--interactive", action="store_true", help="Prompt for missing answers when stdin is a TTY.")
     init.add_argument("--force", action="store_true", help="Overwrite generated starter files if they already exist.")
 
+    new = sub.add_parser("new")
+    new.add_argument("--answers", type=Path, default=None, help="JSON answers for non-interactive setup.")
+    new.add_argument("--name", default=None)
+    new.add_argument("--language", default=None)
+    new.add_argument("--work-type", default=None)
+    new.add_argument("--communication-style", default=None)
+    new.add_argument("--project", action="append", default=None)
+    new.add_argument("--confirmation-rule", action="append", default=None)
+    new.add_argument("--never-store", action="append", default=None)
+    new.add_argument("--interactive", action="store_true", help="Prompt for missing answers when stdin is a TTY.")
+    new.add_argument("--force", action="store_true", help="Overwrite generated starter files if they already exist.")
+
     share = sub.add_parser("share")
     share.add_argument("--agent", choices=sorted(AGENT_BRIDGE_TARGETS), required=True)
     share.add_argument("--workspace", type=Path, default=None, help="Workspace folder where the agent bridge should be written.")
@@ -1093,6 +1341,18 @@ def build_parser() -> argparse.ArgumentParser:
     share.add_argument("--append", action="store_true", help="Append a marked bridge block to an existing target file.")
     share.add_argument("--force", action="store_true", help="Overwrite an existing target file, or allow replacing an existing bridge block.")
     share.add_argument("--print", dest="print_only", action="store_true", help="Print the bridge text instead of writing a file.")
+
+    connect = sub.add_parser("connect")
+    connect.add_argument("--agent", choices=sorted(AGENT_BRIDGE_TARGETS), default=None)
+    connect.add_argument("--workspace", type=Path, default=None, help="Project folder to connect.")
+    connect.add_argument("--target", type=Path, default=None, help="Explicit Agent connection file path.")
+    connect.add_argument("--append", action="store_true", help="Append a marked connection block to an existing file.")
+    connect.add_argument("--force", action="store_true", help="Overwrite an existing connection file.")
+    connect.add_argument("--print", dest="print_only", action="store_true", help="Print the connection text instead of writing a file.")
+
+    backup = sub.add_parser("backup")
+    backup.add_argument("--output", type=Path, default=None, help="Backup zip file path.")
+    backup.add_argument("--backup-dir", type=Path, default=None, help="Folder for generated backups.")
 
     remember = sub.add_parser("remember")
     remember.add_argument("--session-id", default="default")
@@ -1120,11 +1380,26 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str]) -> int:
     parser = build_parser()
     args = parser.parse_args(argv[1:])
+    if args.command is None:
+        print_memory_menu()
+        return 0
+    if args.root is None:
+        if args.command in {"start", "new", "connect", "backup"}:
+            default = user_default_root()
+            args.root = default if args.command == "new" or default.exists() else repo_root()
+        else:
+            args.root = repo_root()
     args.root = args.root.resolve()
-    if args.command == "init":
+    if args.command == "start":
+        return command_start(args)
+    if args.command in {"init", "new"}:
         return command_init(args)
     if args.command == "share":
         return command_share(args)
+    if args.command == "connect":
+        return command_connect(args)
+    if args.command == "backup":
+        return command_backup(args)
     if args.command == "remember":
         return command_remember(args)
     if args.command == "recall":

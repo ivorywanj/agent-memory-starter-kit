@@ -4,19 +4,25 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def run(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+def run(*args: str, check: bool = True, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    command_env = os.environ.copy()
+    if env:
+        command_env.update(env)
     result = subprocess.run(
         [sys.executable, *args] if args[0].endswith(".py") else [*args],
         cwd=ROOT,
+        env=command_env,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -27,9 +33,16 @@ def run(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     return result
 
 
+def assert_no_user_first_screen_terms(text: str) -> None:
+    blocked = ("runtime", "root", "bridge", "source-of-truth", "session cache", "deprecated", "cli", "markdown")
+    lowered = text.lower()
+    for term in blocked:
+        assert term not in lowered, f"unexpected internal term: {term}"
+
+
 def test_init_creates_public_runtime() -> None:
     with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp) / "runtime"
+        root = Path(tmp) / "library"
         workspace = Path(tmp) / "example-saas"
         workspace.mkdir()
         (workspace / "private-note.md").write_text("DO_NOT_IMPORT_WORKSPACE_CONTENT", encoding="utf-8")
@@ -67,12 +80,12 @@ def test_init_creates_public_runtime() -> None:
         projects_json = json.loads((root / "memory/projects/projects.json").read_text(encoding="utf-8"))
         codex_workspace = Path(tmp) / "codex-workspace"
         codex_workspace.mkdir()
-        codex_share = run("scripts/memory", "--root", str(root), "share", "--agent", "codex", "--workspace", str(codex_workspace))
-        codex_bridge = (codex_workspace / "AGENTS.md").read_text(encoding="utf-8")
+        codex_connect = run("scripts/memory", "--root", str(root), "connect", "--workspace", str(codex_workspace), env={"AGENT_MEMORY_AGENT": "codex"})
+        codex_connection = (codex_workspace / "AGENTS.md").read_text(encoding="utf-8")
         cursor_workspace = Path(tmp) / "cursor-workspace"
         cursor_workspace.mkdir()
-        cursor_share = run("scripts/memory", "--root", str(root), "share", "--agent", "cursor", "--workspace", str(cursor_workspace))
-        cursor_bridge_exists = (cursor_workspace / ".cursor/rules/agent-memory.mdc").exists()
+        cursor_connect = run("scripts/memory", "--root", str(root), "connect", "--agent", "cursor", "--workspace", str(cursor_workspace))
+        cursor_connection_exists = (cursor_workspace / ".cursor/rules/agent-memory.mdc").exists()
         second = run("scripts/memory", "--root", str(root), "init", "--answers", str(answers), check=False)
 
     assert "Memory initialized" in result.stdout
@@ -86,22 +99,61 @@ def test_init_creates_public_runtime() -> None:
     assert projects_json["projects"][0]["workspace"] == str(workspace)
     assert projects_json["projects"][0]["workspace_status"] == "verified_at_init"
     assert projects_json["projects"][1]["workspace_status"] == "not_provided"
-    assert "Shared memory bridge ready" in codex_share.stdout
-    assert "This bridge is a pointer only" in codex_bridge
-    assert "Alex" not in codex_bridge
-    assert "Example SaaS" not in codex_bridge
-    assert "DO_NOT_IMPORT_WORKSPACE_CONTENT" not in codex_bridge
-    assert "Shared memory bridge ready" in cursor_share.stdout
-    assert cursor_bridge_exists
+    assert "Current Agent connected" in codex_connect.stdout
+    assert_no_user_first_screen_terms(codex_connect.stdout)
+    assert "Agent Memory Connection" in codex_connection
+    assert "Alex" not in codex_connection
+    assert "Example SaaS" not in codex_connection
+    assert "DO_NOT_IMPORT_WORKSPACE_CONTENT" not in codex_connection
+    assert "Current Agent connected" in cursor_connect.stdout
+    assert cursor_connection_exists
     private_markers = ("Wan" + "jia", "万" + "家", "Journey" + "Gen")
     assert all(marker not in combined for marker in private_markers)
     assert second.returncode == 1
     assert "init_blocked: existing files" in second.stdout
 
 
+def test_memory_shortcuts_and_backup_zip() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        menu = run("scripts/memory")
+        assert "1. Create a memory library" in menu.stdout
+        assert "2. Connect this Agent" in menu.stdout
+        assert "3. Back up a memory library" in menu.stdout
+        assert "/memory new" in menu.stdout
+        assert "/memory connect" in menu.stdout
+        assert "/memory backup" in menu.stdout
+        assert_no_user_first_screen_terms(menu.stdout)
+
+        root = Path(tmp) / "library"
+        run("scripts/memory", "--root", str(root), "new", "--answers", "templates/public/answers.example.json")
+        workspace = Path(tmp) / "workspace"
+        workspace.mkdir()
+        connect = run("scripts/memory", "--root", str(root), "connect", "--workspace", str(workspace), env={"AGENT_MEMORY_AGENT": "codex"})
+        assert "Current Agent connected" in connect.stdout
+        assert_no_user_first_screen_terms(connect.stdout)
+        assert (workspace / "AGENTS.md").exists()
+
+        (root / ".env.local").write_text("SECRET=not-included", encoding="utf-8")
+        (root / "memory/runtime/session_cache").mkdir(parents=True, exist_ok=True)
+        (root / "memory/runtime/session_cache/s1.jsonl").write_text("temporary dialogue", encoding="utf-8")
+        (root / "memory/history/runtime").mkdir(parents=True, exist_ok=True)
+        (root / "memory/history/runtime/history.sqlite3").write_text("sqlite", encoding="utf-8")
+        (root / "memory/hot/USER.draft.md").write_text("# draft", encoding="utf-8")
+        backup_path = Path(tmp) / "backup.zip"
+        backup = run("scripts/memory", "--root", str(root), "backup", "--output", str(backup_path))
+        assert "Memory backup created" in backup.stdout
+        with zipfile.ZipFile(backup_path) as archive:
+            names = set(archive.namelist())
+        assert "AGENTS.md" in names
+        assert ".env.local" not in names
+        assert "memory/runtime/session_cache/s1.jsonl" not in names
+        assert "memory/history/runtime/history.sqlite3" not in names
+        assert "memory/hot/USER.draft.md" not in names
+
+
 def test_memory_loop_promotes_recalls_and_deprecates() -> None:
     with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp) / "runtime"
+        root = Path(tmp) / "library"
         run("scripts/memory", "--root", str(root), "init", "--answers", "templates/public/answers.example.json")
         run(
             "scripts/memory",
@@ -135,7 +187,7 @@ def test_init_blocks_secret_shaped_answers() -> None:
             json.dumps({"name": "Alex", "projects": [{"name": "Safe name", "workspace": "sk-" + "abcdefghijklmnopqrstuvwxyz123456"}]}),
             encoding="utf-8",
         )
-        result = run("scripts/memory", "--root", str(Path(tmp) / "runtime"), "init", "--answers", str(answers), check=False)
+        result = run("scripts/memory", "--root", str(Path(tmp) / "library"), "init", "--answers", str(answers), check=False)
 
     assert result.returncode == 1
     assert "init_blocked:" in result.stdout
@@ -155,6 +207,7 @@ def test_public_release_check_passes_package() -> None:
 def main() -> int:
     tests = [
         test_init_creates_public_runtime,
+        test_memory_shortcuts_and_backup_zip,
         test_memory_loop_promotes_recalls_and_deprecates,
         test_init_blocks_secret_shaped_answers,
         test_memory_guard_passes_public_package,

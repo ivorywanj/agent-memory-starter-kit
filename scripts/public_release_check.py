@@ -36,26 +36,43 @@ REQUIRED_FILES = (
     "docs/releases/v0.1.3.md",
     "docs/first-run-wizard.md",
     "docs/agent-sharing.md",
+    "docs/productized-user-flow.md",
+    "docs/workflows/memory-new.md",
+    "docs/workflows/memory-connect.md",
+    "docs/workflows/memory-backup.md",
     "docs/workflows/memory-share.md",
 )
 README_REQUIRED_SNIPPETS = (
-    "Local-first memory runtime for coding agents.",
+    "Local-first memory library for coding agents.",
     "## Quickstart",
-    "Agent-led first-run wizard",
-    "new setup -> ask onboarding questions -> run scripts/memory init",
-    "share existing runtime -> ask runtime/workspace questions -> run scripts/memory share",
-    "answers.example.json` is a demo fixture",
-    "--project \"Example SaaS | ~/projects/example-saas\"",
-    "scripts/memory --root ./my-agent-memory share --agent codex --workspace ./my-project",
+    "/memory new",
+    "/memory connect",
+    "/memory backup",
+    "scripts/memory new",
+    "scripts/memory connect",
+    "scripts/memory backup",
+    "For first-time setup, the Agent should not ask where to store the files.",
     "## Sharing Across Agents",
     "## First-Run Wizard",
-    "workspace pointer",
-    "## Memory Loop",
+    "## Productized Flow Metrics",
+    "docs/productized-user-flow.md",
+    "folder pointer",
+    "## Developer Commands",
     "init -> remember -> recall -> improve -> forget",
     "## Safety",
     "## Validation",
     "## Benchmark Evidence",
     "## V1 Limits",
+)
+README_FIRST_SCREEN_BLOCKED_TERMS = (
+    "runtime",
+    "root",
+    "bridge",
+    "source-of-truth",
+    "session cache",
+    "deprecated",
+    "cli",
+    "markdown",
 )
 
 
@@ -79,6 +96,10 @@ def main() -> int:
         for snippet in README_REQUIRED_SNIPPETS:
             if snippet not in readme_text:
                 findings.append(f"README.md missing snippet: {snippet}")
+        first_screen = readme_text.split("## Developer Commands", 1)[0].lower()
+        for term in README_FIRST_SCREEN_BLOCKED_TERMS:
+            if term in first_screen:
+                findings.append(f"README.md first screen uses internal term: {term}")
     for path in iter_text_files():
         rel = path.relative_to(ROOT)
         text = path.read_text(encoding="utf-8", errors="replace")
