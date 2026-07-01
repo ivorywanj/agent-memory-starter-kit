@@ -105,6 +105,7 @@ def test_init_creates_public_runtime() -> None:
     assert "Alex" not in codex_connection
     assert "Example SaaS" not in codex_connection
     assert "DO_NOT_IMPORT_WORKSPACE_CONTENT" not in codex_connection
+    assert "No profile, project facts, or long-term memory were copied" in codex_connect.stdout
     assert "Current Agent connected" in cursor_connect.stdout
     assert cursor_connection_exists
     private_markers = ("Wan" + "jia", "万" + "家", "Journey" + "Gen")
@@ -133,7 +134,9 @@ def test_memory_shortcuts_and_backup_zip() -> None:
         connect = run("scripts/memory", "--root", str(root), "connect", "--workspace", str(workspace), env={"AGENT_MEMORY_AGENT": "codex"})
         assert "Current Agent connected" in connect.stdout
         assert_no_user_first_screen_terms(connect.stdout)
-        assert (workspace / "AGENTS.md").exists()
+        connection_file = workspace / "AGENTS.md"
+        assert connection_file.exists()
+        connection_text = connection_file.read_text(encoding="utf-8")
 
         (root / ".env.local").write_text("SECRET=not-included", encoding="utf-8")
         (root / "memory/runtime/session_cache").mkdir(parents=True, exist_ok=True)
@@ -144,6 +147,9 @@ def test_memory_shortcuts_and_backup_zip() -> None:
         backup_path = Path(tmp) / "backup.zip"
         backup = run("scripts/memory", "--root", str(root), "backup", "--output", str(backup_path))
         assert "Memory backup created" in backup.stdout
+        assert "Current Agent connected" not in backup.stdout
+        assert "import" not in backup.stdout.lower()
+        assert connection_file.read_text(encoding="utf-8") == connection_text
         with zipfile.ZipFile(backup_path) as archive:
             names = set(archive.namelist())
         assert "AGENTS.md" in names
@@ -220,14 +226,37 @@ def test_memory_install_writes_agent_shortcuts() -> None:
             str(home),
             "--force",
         )
+        cursor_home = Path(tmp) / "cursor-home"
+        cursor_workspace = Path(tmp) / "cursor-workspace"
+        cursor_home.mkdir()
+        cursor_workspace.mkdir()
+        cursor_install = run(
+            "scripts/memory",
+            "--root",
+            str(root),
+            "install",
+            "--agent",
+            "cursor",
+            "--workspace",
+            str(cursor_workspace),
+            "--home",
+            str(cursor_home),
+        )
+        cursor_shim = cursor_home / ".local/bin/memory"
+        cursor_shim_exists = cursor_shim.exists()
+        cursor_shim_executable = os.access(cursor_shim, os.X_OK)
 
     assert "Memory shortcuts installed" in install.stdout
     assert "Codex plugin add: skipped_custom_home" in install.stdout
-    assert "Codex text shortcut: memory" in install.stdout
-    assert "Codex text shortcuts: memory new, memory connect, memory backup" in install.stdout
+    assert "Text shortcut: memory" in install.stdout
+    assert "Text shortcuts: memory new, memory connect, memory backup" in install.stdout
     assert "Shell command installed: memory" in install.stdout
+    assert "PATH action: add" in install.stdout
     assert all_expected_exist
     assert memory_shim_executable
+    assert "Shell:" in install.stdout
+    assert "Preferred:" in texts
+    assert "memory backup" in texts
     assert "/memory" in texts
     assert "memory new" in texts
     assert "/memory new" in texts
@@ -246,6 +275,9 @@ def test_memory_install_writes_agent_shortcuts() -> None:
     assert duplicate.returncode == 1
     assert "install_blocked: target exists" in duplicate.stdout
     assert "Memory shortcuts installed" in forced.stdout
+    assert cursor_shim_exists
+    assert cursor_shim_executable
+    assert "Text shortcut: memory" in cursor_install.stdout
 
 
 def test_memory_loop_promotes_recalls_and_deprecates() -> None:

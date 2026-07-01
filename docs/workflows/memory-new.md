@@ -1,4 +1,4 @@
-# /memory new
+# memory new
 
 Use this workflow when the user is creating a memory library for the first time.
 
@@ -25,7 +25,7 @@ If this project has a work folder, paste it too. Example: Example SaaS | ~/proje
 ## Agent Command
 
 ```bash
-scripts/memory new
+memory new
 ```
 
 For non-interactive tests:

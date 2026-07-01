@@ -1,6 +1,6 @@
 # Agent Sharing
 
-Use `/memory connect` when Codex, Claude Code, Cursor, or another local-file-reading Agent should use the same memory library.
+Use `memory connect` when Codex, TRAE Work, Claude Code, Cursor, or another local-file-reading Agent should use the same memory library on the same machine.
 
 ## Goal
 
@@ -18,10 +18,10 @@ shared memory library
 User-facing flow:
 
 ```text
-/memory connect
+memory connect
 ```
 
-Install shortcut helpers first when the Agent does not show `/memory`:
+Install shortcut helpers first when `memory` is not available:
 
 ```bash
 scripts/memory --root ./my-agent-memory install --agent all --workspace ./my-project

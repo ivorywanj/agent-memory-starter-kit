@@ -16,7 +16,7 @@ Goal:
 - Help me answer with examples and defaults.
 - Do not ask me to hand-write Markdown.
 - Do not ask where to store the memory library during new setup. Use the default.
-- After the correct branch is clear, run scripts/memory new, scripts/memory connect, or scripts/memory backup.
+- After the correct branch is clear, run memory new, memory connect, or memory backup.
 
 Rules:
 - If I am unsure, let me say "skip" or "use default".
@@ -33,24 +33,24 @@ Choose one:
 - 2. Connect this Agent
 - 3. Back up a memory library
 
-If the user chooses 2, "connect", or "/memory connect":
+If the user chooses 2, "connect", "memory connect", or "/memory connect":
 1. Do not ask profile, preference, or project onboarding questions again.
 2. Try to find an existing memory library in the current folder or common nearby folder first.
 3. If no memory library is found, ask the user to provide the folder or a backup zip from another computer.
 4. Detect the current Agent automatically. Only ask codex / claude / cursor / generic if detection fails.
 5. Ask for the project workspace folder only if it is not already the current workspace.
 6. If the target already has an Agent rules file, use --append unless the user explicitly wants overwrite.
-7. Run scripts/memory connect with those answers.
+7. Run memory connect with those answers.
 8. Report that a connection file was created. Do not copy user profile, project facts, hot memory, observed memory, history, or audit records into the workspace.
 9. Stop.
 
-If the user chooses 3, "backup", or "/memory backup":
-1. Run scripts/memory backup.
+If the user chooses 3, "backup", "memory backup", or "/memory backup":
+1. Run memory backup.
 2. Report the generated zip file path.
 3. Explain that secrets, temporary dialogue data, search indexes, raw runs, drafts, and local database files were excluded.
 4. Stop.
 
-If the user chooses 1, "new", or "/memory new", continue:
+If the user chooses 1, "new", "memory new", or "/memory new", continue:
 
 Question 1/7:
 What should Agents call you?
@@ -126,7 +126,7 @@ Default recommended:
 
 After collecting answers:
 1. Summarize what will be recorded.
-2. Run scripts/memory new with the user's answers.
+2. Run memory new with the user's answers.
 3. Report only the summary and correction syntax:
    - "第 1 条改成..."
    - "删除第 2 条"

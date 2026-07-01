@@ -47,20 +47,16 @@ REQUIRED_FILES = (
 README_REQUIRED_SNIPPETS = (
     "Local-first memory library for coding agents.",
     "## Quickstart",
-    "/memory new",
-    "/memory connect",
-    "/memory backup",
     "scripts/memory install --agent all --workspace ./your-project",
-    "Codex uses text shortcuts and the Agent Memory skill.",
-    "real `memory` shell command",
+    "Type:",
+    "memory",
     "memory new",
-    "/memory-new",
-    "scripts/memory new",
-    "scripts/memory connect",
-    "scripts/memory backup",
-    "scripts/memory",
-    "The menu should show four quick entries:",
-    "If `/memory` does not appear in your Agent UI yet, ask the Agent to run:",
+    "memory connect",
+    "memory backup",
+    "real `memory` shell command",
+    "[$agent-memory](<generated-local-skill-path>/SKILL.md)",
+    "Fallback for troubleshooting only:",
+    "./scripts/memory new",
     "For first-time setup, the Agent should not ask where to store the files.",
     "## Sharing Across Agents",
     "## First-Run Wizard",
@@ -110,6 +106,9 @@ def main() -> int:
         for term in README_FIRST_SCREEN_BLOCKED_TERMS:
             if term in first_screen:
                 findings.append(f"README.md first screen uses internal term: {term}")
+        before_fallback = readme_text.split("Fallback for troubleshooting only:", 1)[0]
+        if "./scripts/memory new" in before_fallback:
+            findings.append("README.md promotes ./scripts/memory new before fallback")
     for path in iter_text_files():
         rel = path.relative_to(ROOT)
         text = path.read_text(encoding="utf-8", errors="replace")

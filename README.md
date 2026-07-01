@@ -13,66 +13,57 @@ git clone https://github.com/ivorywanj/agent-memory-starter-kit.git
 cd agent-memory-starter-kit
 ```
 
-Open Codex, Claude Code, Cursor, or another Agent that can read project files.
-
 Install the Agent shortcuts into a project workspace:
 
 ```bash
 scripts/memory install --agent all --workspace ./your-project
 ```
 
-This installs command helpers for Codex, Claude Code, Cursor, and generic file-reading Agents. Native slash menus vary by Agent. If a slash menu does not appear, ask the Agent to read the installed helper file and run the matching command.
+Open Codex, TRAE Work, Claude Code, Cursor, or another Agent that can read project files.
 
-Codex uses text shortcuts and the Agent Memory skill. After install and restart, type one of these in Codex:
+Type:
 
 ```text
 memory
-memory new
-memory connect
-memory backup
 ```
 
-The installer also writes best-effort plugin command files for slash-capable Agents. Current Codex versions may not show custom slash commands in the command picker, so the text shortcuts above are the stable Codex path.
-
-For Codex, the installer writes a real `memory` shell command into `~/.local/bin` so the Agent can run `memory`, `memory new`, `memory connect`, and `memory backup` from any project.
-
-Slash-capable Agents may also show fallback aliases such as `/memory-new`, `/memory-connect`, and `/memory-backup`.
-
-If your Agent recognizes `/memory`, you can also send:
+The Agent should show:
 
 ```text
-/memory
-```
-
-If `/memory` does not appear in your Agent UI yet, ask the Agent to run:
-
-```bash
-scripts/memory
-```
-
-The menu should show four quick entries:
-
-```text
+What do you want to do?
 1. memory - Show this menu
 2. memory new - Create a memory library
 3. memory connect - Connect this Agent
 4. memory backup - Back up a memory library
 ```
 
-You can also go directly where slash commands are supported:
+You can then type:
 
 ```text
-/memory new
-/memory connect
-/memory backup
+memory new
+memory connect
+memory backup
 ```
 
-The Agent will ask one short question at a time, offer examples, and run the matching setup step:
+The installer writes a real `memory` shell command into `~/.local/bin` so Agents can run `memory`, `memory new`, `memory connect`, and `memory backup` from any project. It also writes helper files for Codex, Claude Code, Cursor, and generic file-reading Agents.
+
+If an Agent supports explicit skill references, use the generated local skill path:
+
+```text
+[$agent-memory](<generated-local-skill-path>/SKILL.md)
+```
+
+Slash-capable Agents may also support `/memory`, `/memory new`, `/memory connect`, and `/memory backup`, but the stable entry is `memory`.
+
+If `memory` is not found, rerun install and check the PATH note in the output.
+
+Fallback for troubleshooting only:
 
 ```bash
-scripts/memory new
-scripts/memory connect
-scripts/memory backup
+./scripts/memory
+./scripts/memory new
+./scripts/memory connect
+./scripts/memory backup
 ```
 
 For first-time setup, the Agent should not ask where to store the files. It creates a default memory library and helps you correct the summary afterward.
@@ -128,17 +119,17 @@ Project workspaces are routing hints, not ingestion permission. The setup record
 
 See `docs/productized-user-flow.md` for the user-flow design and measurable acceptance criteria. The core gates are:
 
-- `/memory` or `scripts/memory` shows exactly four quick entries.
-- `scripts/memory install --agent all` writes Codex, Claude Code, Cursor, and generic command helpers.
+- `memory` shows exactly four quick entries.
+- `scripts/memory install --agent all` writes a shared `memory` shell command plus Codex, Claude Code, Cursor, and generic command helpers.
 - Codex install writes a local plugin package and enables it in `~/.codex/config.toml`.
-- `/memory new` asks no more than seven setup questions, plus an optional project-folder follow-up.
-- `/memory connect` does not re-ask profile questions and auto-detects the current Agent when possible.
-- `/memory backup` creates a zip and excludes unsafe or temporary files.
+- `memory new` asks no more than seven setup questions, plus an optional project-folder follow-up.
+- `memory connect` does not re-ask profile questions and auto-detects the current Agent when possible.
+- `memory backup` creates a zip and excludes unsafe or temporary files.
 - User-facing first screens contain zero blocked internal terms.
 
 ## Sharing Across Agents
 
-Use `/memory connect` when Codex, Claude Code, Cursor, or another Agent should use the same memory library.
+Use `memory connect` when Codex, TRAE Work, Claude Code, Cursor, or another Agent should use the same memory library on the same machine.
 
 The command writes a small connection file into the target Agent workspace. It points back to the same memory library instead of copying user profile, project facts, hot memory, history, or audit records into each Agent.
 
@@ -153,13 +144,13 @@ Default connection targets:
 
 ## Backup
 
-Use `/memory backup` to create a zip backup.
+Use `memory backup` to create a zip backup.
 
 The backup excludes secrets, temporary dialogue data, search indexes, raw runs, generated drafts, and local database files.
 
 ## Developer Commands
 
-The user-facing commands are `/memory new`, `/memory connect`, and `/memory backup`. The lower-level CLI also keeps these developer commands for tests and automation:
+The user-facing commands are `memory new`, `memory connect`, and `memory backup`. The lower-level CLI also keeps these developer commands for tests, automation, and fallback troubleshooting:
 
 ```text
 init -> remember -> recall -> improve -> forget

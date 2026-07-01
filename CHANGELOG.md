@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Promoted `memory` to the stable cross-Agent entry.
 - Added `scripts/memory install` to install Agent shortcut helpers for Codex, Claude Code, Cursor, and generic file-reading Agents.
 - Added public fixture tests for shortcut helper installation and duplicate-install protection.
 

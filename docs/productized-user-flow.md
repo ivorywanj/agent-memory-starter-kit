@@ -7,15 +7,15 @@ This document defines the simple user flow and measurable acceptance criteria fo
 Users should be able to open the menu, start, connect, and back up memory through four quick entries:
 
 ```text
-/memory
-/memory new
-/memory connect
-/memory backup
+memory
+memory new
+memory connect
+memory backup
 ```
 
 The Agent handles setup steps. The user answers guided questions and corrects the summary if needed.
 
-If the Agent UI does not recognize `/memory`, the Agent should run `scripts/memory` and show the same four entries.
+Slash-capable Agents may also support `/memory`, but the stable entry is `memory`.
 
 Before that, users can install Agent command helpers once:
 
@@ -35,18 +35,19 @@ scripts/memory install --agent all --workspace ./your-project
 
 Flow:
 
-1. Write a Codex local plugin package, command files, skill helper, and config block.
-2. Write Claude Code command files.
-3. Write a Cursor rule helper.
-4. Write a generic Agent command helper.
-5. Report where each helper was installed.
+1. Write a shared executable `memory` shell shortcut.
+2. Write a Codex local plugin package, command files, skill helper, and config block.
+3. Write Claude Code command files.
+4. Write a Cursor rule helper.
+5. Write a generic Agent command helper.
+6. Report where each helper was installed.
 
 ### 1. New User Setup
 
 Entry:
 
 ```text
-/memory new
+memory new
 ```
 
 Flow:
@@ -66,7 +67,7 @@ Flow:
 Entry:
 
 ```text
-/memory connect
+memory connect
 ```
 
 Flow:
@@ -82,7 +83,7 @@ Flow:
 Entry:
 
 ```text
-/memory backup
+memory backup
 ```
 
 Flow:

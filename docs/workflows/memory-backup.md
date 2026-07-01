@@ -1,6 +1,6 @@
-# /memory backup
+# memory backup
 
-Use this workflow when the user wants to move or preserve a memory library.
+Use this workflow when the user wants to preserve a memory library or move it to another computer.
 
 ## User Experience
 
@@ -11,17 +11,18 @@ Do not ask advanced storage questions in v1.
 ## Agent Command
 
 ```bash
-scripts/memory backup
+memory backup
 ```
 
 Optional explicit output:
 
 ```bash
-scripts/memory backup --output ./agent-memory-backup.zip
+memory backup --output ./agent-memory-backup.zip
 ```
 
 ## Pass Criteria
 
 - Backup is a zip file.
+- Backup does not connect, import, switch, or initialize memory libraries.
 - Backup excludes `.env*`, secrets, temporary dialogue data, search indexes, raw runs, generated drafts, and local database files.
 - Backup runs the memory guard before writing the zip.

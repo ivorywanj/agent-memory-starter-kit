@@ -99,6 +99,7 @@ AGENT_LABELS = {
     "claude": "Claude Code",
     "cursor": "Cursor",
     "generic": "Generic Agent",
+    "shell": "Shell",
 }
 BACKUP_EXCLUDED_PARTS = {".git", "__pycache__", ".venv", "venv", "node_modules"}
 BACKUP_EXCLUDED_PREFIXES = (
@@ -449,7 +450,7 @@ def command_helper_text(root: Path) -> str:
 
 Use these shortcuts when the user asks for Agent Memory setup, connection, or backup.
 
-Codex stable entry:
+Stable text entry for all Agents:
 
 - `memory`: show the menu.
 - `memory new`: create a memory library for a new user. Ask one guided question at a time.
@@ -463,9 +464,20 @@ Slash-capable Agents may also support:
 - `/memory connect`: connect this Agent to an existing memory library.
 - `/memory backup`: create a zip backup.
 
-Codex may not show custom slash commands in the command picker. If the user is in Codex, treat `memory new`, `memory connect`, and `memory backup` as the reliable entry points and run the matching command below.
+Some Agents may not show custom slash commands in their command picker. Treat `memory`, `memory new`, `memory connect`, and `memory backup` as the reliable entry points and run the matching command below.
 
 ## Commands To Run
+
+Preferred:
+
+```bash
+memory
+memory new
+memory connect
+memory backup
+```
+
+Fallback if `memory` is not on PATH:
 
 ```bash
 {memory_cmd}
@@ -726,11 +738,34 @@ class InstallFile:
 
 
 def memory_shell_shim_text(root: Path) -> str:
+    python_cmd = shlex.quote(os.environ.get("AGENT_MEMORY_PYTHON", sys.executable or "python3"))
     memory_cmd = shlex.quote(str(memory_script()))
     root_arg = shlex.quote(str(root))
     return f"""#!/bin/sh
-exec {memory_cmd} --root {root_arg} "$@"
+export PYTHONDONTWRITEBYTECODE=1
+exec {python_cmd} {memory_cmd} --root {root_arg} "$@"
 """
+
+
+def shell_shim_path(home: Path) -> Path:
+    return home / ".local/bin/memory"
+
+
+def shared_install_files(root: Path, home: Path) -> list[InstallFile]:
+    return [InstallFile("shell", shell_shim_path(home), memory_shell_shim_text(root), 0o755)]
+
+
+def bin_dir_on_path(path: Path) -> bool:
+    target = path.expanduser().resolve()
+    for entry in os.environ.get("PATH", "").split(os.pathsep):
+        if not entry:
+            continue
+        try:
+            if Path(entry).expanduser().resolve() == target:
+                return True
+        except OSError:
+            continue
+    return False
 
 
 def install_files_for(root: Path, agent: str, workspace: Path, home: Path) -> list[InstallFile]:
@@ -739,7 +774,6 @@ def install_files_for(root: Path, agent: str, workspace: Path, home: Path) -> li
         files = [
             InstallFile(agent, codex_marketplace_dir(home) / ".claude-plugin/marketplace.json", codex_marketplace_manifest_text()),
             InstallFile(agent, home / ".codex/skills/agent-memory/SKILL.md", codex_skill_text(root)),
-            InstallFile(agent, home / ".local/bin/memory", memory_shell_shim_text(root), 0o755),
             InstallFile(agent, plugin_root / ".codex-plugin/plugin.json", codex_plugin_manifest_text()),
             InstallFile(agent, plugin_root / "skills/agent-memory/SKILL.md", codex_skill_text(root)),
         ]
@@ -765,7 +799,7 @@ def command_install(args: argparse.Namespace) -> int:
     workspace = (args.workspace or Path.cwd()).expanduser().resolve()
     home = (args.home or Path.home()).expanduser().resolve()
     agents = list(AGENT_INSTALL_TARGETS) if args.agent == "all" else [args.agent]
-    planned: list[InstallFile] = []
+    planned: list[InstallFile] = shared_install_files(root, home)
     for agent in agents:
         planned.extend(install_files_for(root, agent, workspace, home))
     combined = "\n".join(item.content + "\n" + str(item.path) for item in planned)
@@ -796,12 +830,18 @@ def command_install(args: argparse.Namespace) -> int:
     print(f"Installed for: {installed_agents}")
     print(f"Workspace: {workspace}")
     print(f"Memory library: {root}")
-    print("Codex text shortcut: memory")
-    print("Codex text shortcuts: memory new, memory connect, memory backup")
+    print("Text shortcut: memory")
+    print("Text shortcuts: memory new, memory connect, memory backup")
     print("Shell command installed: memory")
     print("Slash-capable Agents: /memory, /memory new, /memory connect, /memory backup")
     print("Codex custom slash commands are best-effort; current Codex may not show plugin commands.")
     print("If your Agent does not show slash commands, use the text shortcuts above.")
+    shim = shell_shim_path(home)
+    shim_dir = shim.parent
+    if bin_dir_on_path(shim_dir):
+        print(f"- PATH: {shim_dir} is available")
+    else:
+        print(f"- PATH action: add {shim_dir} to PATH, then restart your Agent")
     if config_path:
         print(f"- Codex config: {config_path}")
     if codex_cli_status:
