@@ -6,39 +6,18 @@ JourneyMem helps Codex, Claude Code, Cursor, TRAE Work, and other Agents that ca
 
 ## Quickstart
 
-For Codex, TRAE Work, Claude Code, Cursor, or another Agent, copy this whole prompt:
+User-facing Start Page:
 
 ```text
-Please set up JourneyMem from this GitHub repo:
-https://github.com/ivorywanj/agent-memory-starter-kit
-
-Open the repository, then read its Agent instructions if your environment supports them.
-
-Do not summarize the repository structure.
-Do not start `memory new` or `memory connect` yet.
-Ask me this first:
-Output only this user-facing choice. Do not add setup analysis, repository summary, or mode/tooling notes.
-
-What do you want to do?
-1. memory new - Create a memory library
-2. memory connect - Connect this Agent to an existing memory library
-
-Other command:
-- memory backup - Back up a memory library
+https://ivorywanj.github.io/agent-memory-starter-kit/
 ```
 
-Do not paste only `git clone` and `cd agent-memory-starter-kit` into an Agent. That makes many Agents treat JourneyMem like a generic code repo. A fresh clone does not mean the user chose new setup; before running `memory new` or `memory connect`, the Agent must ask whether you want to create a new memory library or connect this Agent to an existing memory library.
+Use the Start Page to choose setup, current-Agent use, or backup, then copy an Agent-ready prompt.
 
-After the Agent opens the repo, it can install the Agent shortcuts into a project workspace:
-
-```bash
-scripts/memory install --agent all --workspace ./your-project
-```
-
-Terminal install option:
+Recommended path: install JourneyMem once, then use the installed skill/helper from any supported Agent.
 
 ```bash
-./install.sh
+curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash
 ```
 
 The installer creates `~/.journeymem/`, installs the `memory` command, and writes Agent helper files. It detects the current Agent when possible; when it cannot detect one, it installs helpers for all supported Agents. It does not create a personal memory library until the user chooses `memory new`, and it does not import workspace files.
@@ -51,6 +30,12 @@ Type:
 memory
 ```
 
+If your Agent supports explicit skill references, you can also use the installed local skill:
+
+```text
+[$journeymem](<generated-local-skill-path>/SKILL.md)
+```
+
 The Agent should show:
 
 ```text
@@ -60,6 +45,24 @@ What do you want to do?
 
 Other command:
 - memory backup - Back up a memory library
+```
+
+Do not paste only the GitHub URL into an Agent as the normal quickstart. Many Agents treat a bare GitHub URL like a generic code repo to clone and inspect. JourneyMem's GitHub URL is an install source fallback, not the primary Agent entry.
+
+If an Agent receives the JourneyMem GitHub URL anyway, it should treat it as an install source:
+
+```text
+Install or activate JourneyMem first.
+Do not clone, inspect folder structure, summarize scripts, or ask what to do with this repo before install/menu.
+Then show the JourneyMem menu.
+```
+
+Manual terminal fallback only:
+
+```bash
+git clone https://github.com/ivorywanj/agent-memory-starter-kit.git
+cd agent-memory-starter-kit
+./install.sh
 ```
 
 You can then type:
@@ -77,22 +80,9 @@ memory backup
 
 The installer writes a real `memory` shell command into `~/.local/bin` so Agents can run `memory`, `memory new`, `memory connect`, and `memory backup` from any project. It also detects the current Agent when possible and writes helper files for Codex, Claude Code, Cursor, TRAE Work, or generic file-reading Agents.
 
-If an Agent supports explicit skill references, use the generated local skill path:
-
-```text
-[$journeymem](<generated-local-skill-path>/SKILL.md)
-```
-
 Slash-capable Agents may also support `/memory`, `/memory new`, `/memory connect`, and `/memory backup`, but the stable entry is `memory`.
 
 If `memory` is not found, rerun install and check the PATH note in the output.
-
-Manual terminal fallback only:
-
-```bash
-git clone https://github.com/ivorywanj/agent-memory-starter-kit.git
-cd agent-memory-starter-kit
-```
 
 Then use these troubleshooting commands only when the Agent prompt flow is not available:
 
@@ -140,7 +130,7 @@ The onboarding flow starts by identifying the user's first-use intent:
 Do you want to create a new memory library, or connect this Agent to an existing memory library?
 ```
 
-Fresh clone rule: after `git clone` and `cd agent-memory-starter-kit`, the Agent must ask this two-choice question. It must not start `memory new` automatically.
+Install-source fallback rule: if the JourneyMem GitHub URL or a manual clone appears first, the Agent must install or activate JourneyMem before any repo exploration, then ask this two-choice question. It must not start `memory new` automatically.
 
 If the user is new, the first visible setup response should be:
 
@@ -162,7 +152,7 @@ Project workspaces are routing hints, not ingestion permission. The setup record
 See `docs/productized-user-flow.md` for the user-flow design and measurable acceptance criteria. The core gates are:
 
 - `memory` shows exactly two first-use choices: create a new memory library or connect this Agent to an existing memory library.
-- A fresh clone followed by `cd agent-memory-starter-kit` does not trigger `memory new`; the Agent asks the two-choice first-use question first.
+- A JourneyMem GitHub URL or manual clone does not trigger repo exploration or `memory new`; the Agent treats it as an install source and asks the two-choice first-use question after install/activation.
 - `scripts/memory install --agent all` writes a shared `memory` shell command plus Codex, Claude Code, Cursor, TRAE Work, and generic command helpers.
 - Codex install writes a local plugin package and enables it in `~/.codex/config.toml`.
 - `memory new` asks no more than seven setup questions, plus an optional project-folder follow-up.

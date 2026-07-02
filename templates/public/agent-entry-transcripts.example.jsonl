@@ -1,2 +1,5 @@
 {"id":"codex-valid-default-1","agent":"codex","scenario":"valid_default","text":"What do you want to do?\n1. memory new - Create a memory library\n2. memory connect - Connect this Agent to an existing memory library\nOther command:\n- memory backup - Back up a memory library"}
+{"id":"codex-skill-trigger-1","agent":"codex","scenario":"skill_trigger","text":"What do you want to do?\n1. memory new - Create a memory library\n2. memory connect - Connect this Agent to an existing memory library"}
 {"id":"trae-valid-default-1","agent":"trae","scenario":"valid_default","text":"What do you want to do?\n1. memory new - Create a memory library\n2. memory connect - Connect this Agent to an existing memory library"}
+{"id":"trae-start-page-1","agent":"trae","scenario":"start_page","text":"What do you want to do?\n1. memory new - Create a memory library\n2. memory connect - Connect this Agent to an existing memory library"}
+{"id":"trae-github-fallback-1","agent":"trae","scenario":"github_fallback","text":"What do you want to do?\n1. memory new - Create a memory library\n2. memory connect - Connect this Agent to an existing memory library"}

@@ -12,6 +12,7 @@ from pathlib import Path
 
 DEFAULT_CODEX_BIN = Path("/Applications/Codex.app/Contents/Resources/codex")
 USAGE_LIMIT_MARKER = "You've hit your usage limit"
+SCENARIOS = ("valid-default", "skill-trigger", "start-page", "github-fallback")
 
 
 def extract_assistant_text(stdout: str) -> str:
@@ -48,7 +49,7 @@ def build_command(args: argparse.Namespace, raw_output: Path) -> list[str]:
     return command
 
 
-def run_score(root: Path, transcript: Path) -> int:
+def run_score(root: Path, transcript: Path, scenario: str) -> int:
     scorer = root / "scripts/score_agent_entry_transcripts.py"
     if not scorer.exists():
         print(f"score_skipped: missing {scorer}")
@@ -61,6 +62,8 @@ def run_score(root: Path, transcript: Path) -> int:
             str(transcript),
             "--require-agents",
             "codex",
+            "--require-scenarios",
+            scenario.replace("-", "_"),
         ],
         cwd=root,
         text=True,
@@ -78,13 +81,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workspace", type=Path, default=Path.cwd(), help="Workspace passed to Codex -C.")
     parser.add_argument("--codex-bin", type=Path, default=DEFAULT_CODEX_BIN, help="Codex CLI executable.")
     parser.add_argument("--model", default="", help="Optional Codex model name.")
+    parser.add_argument("--scenario", choices=SCENARIOS, default="valid-default", help="Prompt scenario to collect.")
     parser.add_argument("--timeout", type=int, default=180, help="Codex command timeout in seconds.")
     parser.add_argument("--dry-run", action="store_true", help="Print command without calling Codex.")
     parser.add_argument("--no-score", action="store_true", help="Do not run the transcript scorer after collection.")
     args = parser.parse_args(argv)
 
-    prompt_path = args.trial_pack / "prompts/codex.prompt.txt"
-    transcript_path = args.trial_pack / "transcripts/codex-valid-default-1.txt"
+    prompt_path = args.trial_pack / f"prompts/codex-{args.scenario}-1.prompt.txt"
+    transcript_path = args.trial_pack / f"transcripts/codex-{args.scenario}-1.txt"
     if not prompt_path.exists():
         raise SystemExit(f"missing_prompt: {prompt_path}")
     transcript_path.parent.mkdir(parents=True, exist_ok=True)
@@ -128,7 +132,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"codex_entry_transcript: {transcript_path}")
     if args.no_score:
         return 0
-    return run_score(Path.cwd(), transcript_path)
+    return run_score(Path.cwd(), transcript_path, args.scenario)
 
 
 if __name__ == "__main__":

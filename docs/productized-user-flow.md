@@ -104,7 +104,7 @@ Flow:
 | ID | Area | Pass Criteria | Automated Evidence |
 |---|---|---|---|
 | T21 | Quick entry | `/memory` or `scripts/memory` shows exactly 2 first-use choices: create new or connect existing. Backup is available separately, not as a main first-use branch. Blocked internal terms on the first screen = 0. | `tests/test_public_package.py::test_memory_shortcuts_and_backup_zip` |
-| T21a | Fresh clone intent | A fresh clone followed by `cd agent-memory-starter-kit` does not trigger `memory new`; the Agent asks the two-choice first-use question first. | `scripts/public_release_check.py` |
+| T21a | GitHub install-source fallback | A JourneyMem GitHub URL or manual clone does not trigger repo exploration or `memory new`; the Agent treats it as an install source and asks the two-choice first-use question after install/activation. | `scripts/public_release_check.py` |
 | T22 | Shortcut install | `scripts/memory install --agent all` writes Codex, Claude Code, Cursor, TRAE Work, and generic helpers. Duplicate install blocks unless `--force` is used. | `tests/test_public_package.py::test_memory_install_writes_agent_shortcuts` |
 | T23 | New setup | Setup creates required files, asks no storage-location question, requires no manual memory-file editing, and blocks secret-shaped answers. | `tests/test_public_package.py::test_init_creates_public_runtime` and `test_init_blocks_secret_shaped_answers` |
 | T24 | Cross-Agent connect | Connect checks the local registry/default path before asking for any folder path, only trusts candidates with the expected starter files, and creates a pointer-only connection. Copied profile/project facts/secrets = 0. | `tests/test_public_package.py::test_memory_connect_finds_existing_library_from_registry` |

@@ -12,10 +12,15 @@ from pathlib import Path
 
 REQUIRED_TRANSCRIPTS = (
     "codex-valid-default-1.txt",
+    "codex-skill-trigger-1.txt",
+    "codex-start-page-1.txt",
+    "codex-github-fallback-1.txt",
     "trae-valid-default-1.txt",
-    "trae-valid-default-2.txt",
-    "trae-valid-default-3.txt",
+    "trae-skill-trigger-1.txt",
+    "trae-start-page-1.txt",
+    "trae-github-fallback-1.txt",
 )
+REQUIRED_SCENARIOS = "valid_default,skill_trigger,start_page,github_fallback"
 
 
 def executable(path: str) -> bool:
@@ -46,6 +51,8 @@ def run_scorer(root: Path, transcripts: Path) -> tuple[int, str]:
             str(transcripts),
             "--require-agents",
             "codex,trae",
+            "--require-scenarios",
+            REQUIRED_SCENARIOS,
             "--require-trae-trials",
             "3",
         ],
@@ -67,6 +74,12 @@ def next_actions(transcripts: Path) -> list[str]:
     actions: list[str] = []
     if not status["codex-valid-default-1.txt"]:
         actions.append("Run: python3 scripts/collect_codex_entry_transcript.py --trial-pack <trial-pack>")
+    missing_codex_scenarios = [
+        name for name in REQUIRED_TRANSCRIPTS if name.startswith("codex-") and not status[name] and name != "codex-valid-default-1.txt"
+    ]
+    for name in missing_codex_scenarios:
+        scenario = name.removeprefix("codex-").removesuffix("-1.txt")
+        actions.append(f"Run: python3 scripts/collect_codex_entry_transcript.py --trial-pack <trial-pack> --scenario {scenario}")
     missing_trae = [name for name in REQUIRED_TRANSCRIPTS if name.startswith("trae-") and not status[name]]
     if missing_trae:
         actions.append("Save real TRAE Work first responses into: " + ", ".join(missing_trae))
@@ -81,22 +94,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", type=Path, default=Path.cwd(), help="JourneyMem package root.")
     args = parser.parse_args(argv)
 
-    transcripts = args.trial_pack / "transcripts"
+    root = args.root.resolve()
+    trial_pack = args.trial_pack.resolve()
+    transcripts = trial_pack / "transcripts"
     print("Agent Entry Readiness")
-    print(f"- trial_pack: {args.trial_pack}")
+    print(f"- trial_pack: {trial_pack}")
     print(f"- transcripts: {transcripts}")
     print(f"- cli_codex: {'available' if codex_available() else 'missing'}")
     print(f"- cli_cursor: {'available' if cursor_available() else 'missing'}")
     print(f"- cli_trae: {'available' if trae_available() else 'missing'}")
     if not transcripts.exists():
         print("- transcript_dir: missing")
-        print("- next: python3 scripts/prepare_agent_entry_trials.py --output " + str(args.trial_pack))
+        print("- next: python3 scripts/prepare_agent_entry_trials.py --output " + str(trial_pack))
         print("- status: fail")
         return 1
     status = transcript_status(transcripts)
     for name, exists in status.items():
         print(f"- transcript_{name}: {'present' if exists else 'missing'}")
-    scorer_rc, scorer_output = run_scorer(args.root, transcripts)
+    scorer_rc, scorer_output = run_scorer(root, transcripts)
     print("- scorer:")
     for line in scorer_output.splitlines():
         print(f"  {line}")

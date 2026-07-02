@@ -17,17 +17,18 @@ SECRET_PATTERNS = (
     re.compile(r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----"),
     re.compile(r"https://[^\s`\"<>]*(?:hooks\.slack\.com|open\.feishu\.cn|discord(?:app)?\.com/api/webhooks)[^\s`\"<>]+", re.I),
 )
+SCENARIOS = ("valid-default", "skill-trigger", "start-page", "github-fallback")
 
 
-def transcript_name(agent: str, trial: int) -> str:
+def transcript_name(agent: str, scenario: str, trial: int) -> str:
     if agent in {"codex", "cursor"}:
         if trial != 1:
             raise SystemExit(f"{agent}_trial_must_be_1")
-        return f"{agent}-valid-default-1.txt"
+        return f"{agent}-{scenario}-{trial}.txt"
     if agent == "trae":
-        if trial not in {1, 2, 3}:
-            raise SystemExit("trae_trial_must_be_1_2_or_3")
-        return f"trae-valid-default-{trial}.txt"
+        if trial < 1:
+            raise SystemExit("trae_trial_must_be_positive")
+        return f"trae-{scenario}-{trial}.txt"
     raise SystemExit(f"unsupported_agent: {agent}")
 
 
@@ -59,6 +60,8 @@ def run_score(root: Path, transcript: Path, agent: str) -> int:
         str(transcript),
         "--require-agents",
         agent,
+        "--require-scenarios",
+        transcript.stem.split(agent + "-", 1)[-1].rsplit("-", 1)[0].replace("-", "_"),
     ]
     if agent == "trae":
         command.extend(["--require-trae-trials", "1"])
@@ -78,7 +81,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Save a real Agent entry transcript for JourneyMem acceptance.")
     parser.add_argument("--trial-pack", type=Path, default=Path("agent-entry-trials"), help="Trial pack directory.")
     parser.add_argument("--agent", choices=("codex", "cursor", "trae"), required=True)
-    parser.add_argument("--trial", type=int, default=1, help="Trial number. TRAE requires 1, 2, or 3.")
+    parser.add_argument("--scenario", choices=SCENARIOS, default="valid-default")
+    parser.add_argument("--trial", type=int, default=1, help="Trial number. Use 1 unless you intentionally repeat a scenario.")
     parser.add_argument("--input", type=Path, default=None, help="Path to a text file containing the first visible Agent response.")
     parser.add_argument("--text", default="", help="Transcript text. Prefer --input or stdin for multi-line text.")
     parser.add_argument("--force", action="store_true", help="Overwrite an existing transcript file.")
@@ -89,7 +93,7 @@ def main(argv: list[str] | None = None) -> int:
     if not text:
         raise SystemExit("empty_transcript")
     ensure_safe(text)
-    target = args.trial_pack / "transcripts" / transcript_name(args.agent, args.trial)
+    target = args.trial_pack / "transcripts" / transcript_name(args.agent, args.scenario, args.trial)
     target.parent.mkdir(parents=True, exist_ok=True)
     if target.exists() and not args.force:
         raise SystemExit(f"transcript_exists: {target}")

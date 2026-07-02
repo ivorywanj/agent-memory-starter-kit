@@ -39,6 +39,11 @@ FOLDER_PROMPT_PATTERNS = (
 )
 RAW_TRANSCRIPT_SUFFIXES = {".txt", ".md"}
 KNOWN_AGENTS = ("codex", "cursor", "trae")
+KNOWN_SCENARIOS = ("valid_default", "skill_trigger", "start_page", "github_fallback")
+
+
+def normalize_token(value: str) -> str:
+    return value.strip().lower().replace(" work", "").replace("-", "_").replace(" ", "_")
 
 
 def infer_agent(path: Path) -> str:
@@ -50,10 +55,31 @@ def infer_agent(path: Path) -> str:
 
 
 def infer_scenario(path: Path) -> str:
-    stem = path.stem.lower().replace("-", "_")
-    if "valid_default" in stem:
+    stem = normalize_token(path.stem)
+    if "github_fallback" in stem or "github_url" in stem:
+        return "github_fallback"
+    if "start_page" in stem:
+        return "start_page"
+    if "skill_trigger" in stem or "journeymem" in stem or "slash_memory" in stem:
+        return "skill_trigger"
+    if "valid_default" in stem or "memory_command" in stem:
         return "valid_default"
     return ""
+
+
+def normalize_scenario(value: Any) -> str:
+    scenario = normalize_token(str(value or ""))
+    if scenario in KNOWN_SCENARIOS:
+        return scenario
+    if "github_fallback" in scenario or "github_url" in scenario:
+        return "github_fallback"
+    if "start_page" in scenario:
+        return "start_page"
+    if "skill_trigger" in scenario or "journeymem" in scenario or "slash_memory" in scenario:
+        return "skill_trigger"
+    if "valid_default" in scenario or "memory_command" in scenario:
+        return "valid_default"
+    return scenario
 
 
 def load_directory_records(path: Path) -> list[dict[str, Any]]:
@@ -126,8 +152,8 @@ def question_count(text: str) -> int:
 def score_record(record: dict[str, Any]) -> dict[str, Any]:
     text = first_output(record)
     lowered = text.lower()
-    scenario = str(record.get("scenario") or "")
-    valid_default = bool(record.get("valid_default") or "valid_default" in scenario)
+    scenario = normalize_scenario(record.get("scenario"))
+    valid_default = bool(record.get("valid_default") or scenario == "valid_default")
     menu_hit = all(term in lowered for term in REQUIRED_MENU_TERMS)
     clone_or_inspect = contains_clone_or_inspect(text)
     noisy_count = noisy_phrase_count(text)
@@ -173,6 +199,11 @@ def main(argv: list[str] | None = None) -> int:
         default="",
         help="Comma-separated required Agent names, for example: codex,cursor,trae.",
     )
+    parser.add_argument(
+        "--require-scenarios",
+        default="",
+        help="Comma-separated required scenarios, for example: valid_default,skill_trigger,start_page,github_fallback.",
+    )
     parser.add_argument("--require-trae-trials", type=int, default=0, help="Minimum TRAE Work transcript count required.")
     args = parser.parse_args(argv)
 
@@ -189,14 +220,21 @@ def main(argv: list[str] | None = None) -> int:
 
     total = len(rows)
     passed = sum(row["pass"] for row in rows)
-    present_agents = {str(row["agent"]).strip().lower().replace(" work", "") for row in rows if row["agent"]}
+    present_agents = {normalize_token(str(row["agent"])) for row in rows if row["agent"]}
     required_agents = {
-        agent.strip().lower().replace(" work", "")
+        normalize_token(agent)
         for agent in args.require_agents.split(",")
         if agent.strip()
     }
     missing_agents = sorted(required_agents - present_agents)
-    trae_count = sum(1 for row in rows if str(row["agent"]).strip().lower().replace(" work", "") == "trae")
+    present_scenarios = {normalize_scenario(row["scenario"]) for row in rows if row["scenario"]}
+    required_scenarios = {
+        normalize_scenario(scenario)
+        for scenario in args.require_scenarios.split(",")
+        if scenario.strip()
+    }
+    missing_scenarios = sorted(required_scenarios - present_scenarios)
+    trae_count = sum(1 for row in rows if normalize_token(str(row["agent"])) == "trae")
     failures = [row for row in rows if not row["pass"]]
     print("Agent Entry Transcript Score")
     print(f"- records: {total}")
@@ -205,6 +243,9 @@ def main(argv: list[str] | None = None) -> int:
     if required_agents:
         print(f"- required_agents: {','.join(sorted(required_agents))}")
         print(f"- missing_agents: {','.join(missing_agents) if missing_agents else 'none'}")
+    if required_scenarios:
+        print(f"- required_scenarios: {','.join(sorted(required_scenarios))}")
+        print(f"- missing_scenarios: {','.join(missing_scenarios) if missing_scenarios else 'none'}")
     print(f"- trae_trials: {trae_count}")
     if args.require_trae_trials:
         print(f"- required_trae_trials: {args.require_trae_trials}")
@@ -221,7 +262,7 @@ def main(argv: list[str] | None = None) -> int:
             f" command={row['command_available']}"
         )
 
-    status_ok = total > 0 and passed == total and not missing_agents and trae_count >= args.require_trae_trials
+    status_ok = total > 0 and passed == total and not missing_agents and not missing_scenarios and trae_count >= args.require_trae_trials
     print(f"- status: {'pass' if status_ok else 'fail'}")
     return 0 if status_ok else 1
 

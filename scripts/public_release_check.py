@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-TEXT_SUFFIXES = {".md", ".mdc", ".py", ".json", ".txt", ".yml", ".yaml"}
+TEXT_SUFFIXES = {".html", ".md", ".mdc", ".py", ".json", ".txt", ".yml", ".yaml"}
 PRIVATE_MARKERS = ("Wan" + "jia", "万" + "家", "Journey" + "Gen", "/Users/" + "wanj", "cowork " + "playground")
 SECRET_PATTERNS = (
     ("api_key", re.compile("s" + "k-[A-Za-z0-9_-]{20,}")),
@@ -30,6 +30,7 @@ REQUIRED_FILES = (
     ".cursor/rules/journeymem-first-run.mdc",
     ".trae/rules/journeymem-first-run.md",
     "JOURNEYMEM.md",
+    "index.html",
     "README.md",
     "LICENSE",
     "SECURITY.md",
@@ -56,6 +57,7 @@ REQUIRED_FILES = (
     "docs/releases/v0.1.2.md",
     "docs/releases/v0.1.3.md",
     "docs/first-run-wizard.md",
+    "docs/index.html",
     "docs/agent-sharing.md",
     "docs/productized-user-flow.md",
     "docs/workflows/memory-new.md",
@@ -68,11 +70,13 @@ REQUIRED_FILES = (
 README_REQUIRED_SNIPPETS = (
     "A local memory library for AI agents.",
     "## Quickstart",
-    "copy this whole prompt",
-    "Please set up JourneyMem from this GitHub repo:",
-    "Do not paste only `git clone` and `cd agent-memory-starter-kit` into an Agent.",
-    "Do not add setup analysis, repository summary, or mode/tooling notes.",
-    "scripts/memory install --agent all --workspace ./your-project",
+    "https://ivorywanj.github.io/agent-memory-starter-kit/",
+    "Use the Start Page to choose setup, current-Agent use, or backup",
+    "Recommended path: install JourneyMem once",
+    "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash",
+    "installed local skill",
+    "GitHub URL is an install source fallback",
+    "Do not clone, inspect folder structure, summarize scripts, or ask what to do with this repo before install/menu.",
     "./install.sh",
     "detects the current Agent when possible",
     "when it cannot detect one, it installs helpers for all supported Agents",
@@ -82,8 +86,8 @@ README_REQUIRED_SNIPPETS = (
     "memory new",
     "memory connect",
     "memory backup",
-    "A fresh clone does not mean the user chose new setup",
-    "before running `memory new` or `memory connect`",
+    "JourneyMem's GitHub URL is an install source fallback, not the primary Agent entry.",
+    "Then show the JourneyMem menu.",
     "real `memory` shell command",
     "[$journeymem](<generated-local-skill-path>/SKILL.md)",
     "Manual terminal fallback only:",
@@ -93,7 +97,7 @@ README_REQUIRED_SNIPPETS = (
     "Do not show the full questionnaire upfront",
     "Do not ask where to store the memory library during `memory new`; use the default location.",
     "Do you want to create a new memory library, or connect this Agent to an existing memory library?",
-    "Fresh clone rule: after `git clone` and `cd agent-memory-starter-kit`, the Agent must ask this two-choice question.",
+    "Install-source fallback rule: if the JourneyMem GitHub URL or a manual clone appears first",
     "no import is needed",
     "checks `~/.journeymem/registry.json` and the default JourneyMem library path before asking for any folder path",
     "AGENTS.md`, `ONBOARDING.md`, `memory/hot/USER.md`, and `memory/hot/MEMORY.md",
@@ -111,9 +115,30 @@ README_REQUIRED_SNIPPETS = (
     "## Benchmark Evidence",
     "## V1 Limits",
 )
+START_PAGE_REQUIRED_SNIPPETS = (
+    "JourneyMem Start",
+    "Start JourneyMem without making your Agent inspect a repo.",
+    "1. Set up JourneyMem on this computer",
+    "2. Use JourneyMem in my current Agent",
+    "3. Back up or move my memory library",
+    "Codex",
+    "TRAE Work",
+    "Claude Code",
+    "Cursor",
+    "Other Agent",
+    "Install or activate JourneyMem first.",
+    "use this install source: https://github.com/ivorywanj/agent-memory-starter-kit",
+    "Do not clone, inspect folder structure, summarize scripts, or ask what to do with this repo before install/menu.",
+    "What do you want to do?",
+    "1. memory new - Create a memory library",
+    "2. memory connect - Connect this Agent to an existing memory library",
+    "memory backup",
+)
 AGENTS_REQUIRED_SNIPPETS = (
     "# JourneyMem Agent Instructions",
+    "install source fallback, not a generic codebase task",
     "do not summarize the repository structure",
+    "install or activate JourneyMem first",
     "I can help you use JourneyMem.",
     "`memory new` - Create a new memory library",
     "`memory connect` - Connect this Agent to an existing memory library",
@@ -163,8 +188,12 @@ DOC_REQUIRED_SNIPPETS = (
             "python3 scripts/save_agent_entry_transcript.py",
             "--run-local-checks",
             "--require-agents codex,trae",
+            "--require-scenarios valid_default,skill_trigger,start_page,github_fallback",
             "--require-trae-trials 3",
             "For raw transcript folders:",
+            "codex-github-fallback-1.txt",
+            "trae-start-page-1.txt",
+            "prompt files are intentionally one line",
             "TRAE Work clone/inspect behavior count = 0.",
             "Folder-path prompt on valid default = 0.",
         ),
@@ -220,6 +249,19 @@ def main() -> int:
         before_manual_fallback = readme_text.split("Manual terminal fallback only:", 1)[0]
         if "git clone " in before_manual_fallback:
             findings.append("README.md promotes bare git clone before Agent prompt")
+    for rel in ("index.html", "docs/index.html"):
+        start_page = ROOT / rel
+        if not start_page.exists():
+            findings.append(f"missing Start Page: {rel}")
+            continue
+        start_text = start_page.read_text(encoding="utf-8", errors="replace")
+        for snippet in START_PAGE_REQUIRED_SNIPPETS:
+            if snippet not in start_text:
+                findings.append(f"{rel} missing snippet: {snippet}")
+        first_screen = start_text.split("<!-- first-screen-end -->", 1)[0].lower()
+        for term in README_FIRST_SCREEN_BLOCKED_TERMS:
+            if term in first_screen:
+                findings.append(f"{rel} first screen uses internal term: {term}")
     for rel in AGENT_INSTRUCTION_FILES:
         agents_file = ROOT / rel
         if not agents_file.exists():

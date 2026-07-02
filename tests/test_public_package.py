@@ -69,6 +69,9 @@ def assert_entry_response_style_rules(text: str) -> None:
         "ask exactly one question at a time",
         "do not show internal analysis",
         "do not ask where to store the memory library",
+        "treat the journeymem github url as an install source",
+        "do not clone, inspect folder structure, summarize scripts",
+        "if the user invokes `$journeymem`, treat it as `memory`",
         "do not infer that they want `memory new`",
         "do not ask for a folder path before checking the local journeymem registry",
         "for same-machine sharing, say no import is needed",
@@ -123,12 +126,38 @@ def test_repo_agent_instructions_route_fresh_clone() -> None:
     for rel in instruction_files:
         text = (ROOT / rel).read_text(encoding="utf-8")
         assert "# JourneyMem Agent Instructions" in text
+        assert "install source fallback, not a generic codebase task" in text
         assert "do not summarize the repository structure" in text
+        assert "install or activate JourneyMem first" in text
         assert "I can help you use JourneyMem." in text
         assert "`memory new` - Create a new memory library" in text
         assert "`memory connect` - Connect this Agent to an existing memory library" in text
         assert "Do not start `memory new` until the user chooses create/new." in text
         assert "Do not ask \"What should Agents call you?\" before that choice." in text
+
+
+def test_start_page_prompt_generation() -> None:
+    for rel in ("index.html", "docs/index.html"):
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        first_screen = text.split("<!-- first-screen-end -->", 1)[0]
+        assert "JourneyMem Start" in first_screen
+        assert "Start JourneyMem without making your Agent inspect a repo." in first_screen
+        assert "Install JourneyMem" in first_screen
+        assert_no_user_first_screen_terms(first_screen)
+        assert "1. Set up JourneyMem on this computer" in text
+        assert "2. Use JourneyMem in my current Agent" in text
+        assert "3. Back up or move my memory library" in text
+        for agent in ("Codex", "TRAE Work", "Claude Code", "Cursor", "Other Agent"):
+            assert f"<summary>{agent}</summary>" in text
+        assert text.count("Install or activate JourneyMem first.") >= 5
+        assert text.count("use this install source: https://github.com/ivorywanj/agent-memory-starter-kit") >= 5
+        assert text.count("Do not clone, inspect folder structure, summarize scripts, or ask what to do with this repo before install/menu.") >= 5
+        assert text.count("What do you want to do?") >= 5
+        assert text.count("1. memory new - Create a memory library") >= 5
+        assert text.count("2. memory connect - Connect this Agent to an existing memory library") >= 5
+        assert "--agent" not in text
+        assert "--root" not in text
+        assert "API key" not in text
 
 
 def test_init_creates_public_runtime() -> None:
@@ -463,17 +492,25 @@ def test_score_agent_entry_transcripts_accepts_good_and_flags_bad_outputs() -> N
                     ),
                     json.dumps(
                         {
-                            "id": "trae-1",
-                            "agent": "trae",
-                            "scenario": "valid_default",
+                            "id": "codex-skill",
+                            "agent": "codex",
+                            "scenario": "skill_trigger",
                             "text": "What do you want to do?\n1. memory new - Create a memory library\n2. memory connect - Connect this Agent to an existing memory library",
                         }
                     ),
                     json.dumps(
                         {
-                            "id": "cursor-1",
-                            "agent": "cursor",
-                            "scenario": "valid_default",
+                            "id": "trae-1",
+                            "agent": "trae",
+                            "scenario": "start_page",
+                            "text": "What do you want to do?\n1. memory new - Create a memory library\n2. memory connect - Connect this Agent to an existing memory library",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "id": "trae-2",
+                            "agent": "trae",
+                            "scenario": "github_fallback",
                             "text": "What do you want to do?\n1. memory new - Create a memory library\n2. memory connect - Connect this Agent to an existing memory library",
                         }
                     ),
@@ -490,6 +527,8 @@ def test_score_agent_entry_transcripts_accepts_good_and_flags_bad_outputs() -> N
             str(good_csv),
             "--require-agents",
             "codex,trae",
+            "--require-scenarios",
+            "valid_default,skill_trigger,start_page,github_fallback",
             "--require-trae-trials",
             "1",
         )
@@ -499,7 +538,9 @@ def test_score_agent_entry_transcripts_accepts_good_and_flags_bad_outputs() -> N
         raw_dir.mkdir()
         raw_menu = "What do you want to do?\n1. memory new - Create a memory library\n2. memory connect - Connect this Agent to an existing memory library"
         (raw_dir / "codex-valid-default-1.txt").write_text(raw_menu + "\nOther command:\n- memory backup - Back up a memory library", encoding="utf-8")
-        (raw_dir / "trae-valid-default-1.txt").write_text(raw_menu, encoding="utf-8")
+        (raw_dir / "codex-skill-trigger-1.txt").write_text(raw_menu, encoding="utf-8")
+        (raw_dir / "trae-start-page-1.txt").write_text(raw_menu, encoding="utf-8")
+        (raw_dir / "trae-github-fallback-1.txt").write_text(raw_menu, encoding="utf-8")
         raw_file = Path(tmp) / "codex-valid-default-single.txt"
         raw_file.write_text(raw_menu, encoding="utf-8")
         raw_score = run(
@@ -508,6 +549,8 @@ def test_score_agent_entry_transcripts_accepts_good_and_flags_bad_outputs() -> N
             str(raw_dir),
             "--require-agents",
             "codex,trae",
+            "--require-scenarios",
+            "valid_default,skill_trigger,start_page,github_fallback",
             "--require-trae-trials",
             "1",
         )
@@ -563,6 +606,16 @@ def test_score_agent_entry_transcripts_accepts_good_and_flags_bad_outputs() -> N
             "1",
             check=False,
         )
+        missing_scenario_score = run(
+            "scripts/score_agent_entry_transcripts.py",
+            "--input",
+            str(missing_trae),
+            "--require-agents",
+            "codex",
+            "--require-scenarios",
+            "valid_default,start_page",
+            check=False,
+        )
         missing_score = run("scripts/score_agent_entry_transcripts.py", "--input", str(Path(tmp) / "missing.jsonl"), check=False)
         example_score = run(
             "scripts/score_agent_entry_transcripts.py",
@@ -580,7 +633,7 @@ def test_score_agent_entry_transcripts_accepts_good_and_flags_bad_outputs() -> N
     assert "- missing_agents: none" in raw_score.stdout
     assert "- status: pass" in raw_file_score.stdout
     assert "- status: pass" in example_score.stdout
-    assert len(good_rows) == 3
+    assert len(good_rows) == 4
     assert all(row["pass"] == "1" for row in good_rows)
     assert bad_score.returncode == 1
     assert "- status: fail" in bad_score.stdout
@@ -588,6 +641,8 @@ def test_score_agent_entry_transcripts_accepts_good_and_flags_bad_outputs() -> N
     assert "folder_prompt=1" in bad_score.stdout
     assert missing_agent_score.returncode == 1
     assert "- missing_agents: trae" in missing_agent_score.stdout
+    assert missing_scenario_score.returncode == 1
+    assert "- missing_scenarios: start_page" in missing_scenario_score.stdout
     assert missing_score.returncode == 1
     assert "input_missing:" in missing_score.stdout
     assert "Traceback" not in missing_score.stdout
@@ -615,9 +670,14 @@ def test_prepare_agent_entry_trials_creates_empty_evidence_pack() -> None:
         assert duplicate.returncode == 1
         assert "trial_pack_exists:" in duplicate.stdout
         assert (output / "README.md").exists()
-        assert (output / "prompts/codex.prompt.txt").exists()
-        assert not (output / "prompts/cursor.prompt.txt").exists()
-        assert (output / "prompts/trae-valid-default-3.prompt.txt").exists()
+        assert (output / "prompts/codex-valid-default-1.prompt.txt").exists()
+        assert (output / "prompts/codex-skill-trigger-1.prompt.txt").exists()
+        assert (output / "prompts/codex-start-page-1.prompt.txt").exists()
+        assert (output / "prompts/codex-github-fallback-1.prompt.txt").exists()
+        assert (output / "prompts/cursor-start-page-1.prompt.txt").exists()
+        assert (output / "prompts/trae-github-fallback-1.prompt.txt").exists()
+        assert "\n" not in (output / "prompts/trae-valid-default-1.prompt.txt").read_text(encoding="utf-8").strip()
+        assert "\n" not in (output / "prompts/trae-github-fallback-1.prompt.txt").read_text(encoding="utf-8").strip()
         assert not list((output / "transcripts").glob("*.txt"))
         assert "- status: fail" in empty_gate.stdout
         assert "- records: 0" in empty_gate.stdout
@@ -675,10 +735,6 @@ def test_collect_cursor_entry_transcript_writes_scoreable_output_and_blocks_usag
         workspace = Path(tmp) / "workspace"
         workspace.mkdir()
         run("scripts/prepare_agent_entry_trials.py", "--output", str(output))
-        (output / "prompts/cursor.prompt.txt").write_text(
-            "What do you want to do?\n1. memory new - Create a memory library\n2. memory connect - Connect this Agent to an existing memory library\n",
-            encoding="utf-8",
-        )
         fake_cursor = Path(tmp) / "fake_cursor.py"
         fake_cursor.write_text(
             "#!/usr/bin/env python3\n"
@@ -754,9 +810,13 @@ def test_agent_entry_readiness_reports_missing_and_complete_evidence() -> None:
         complete_transcripts.mkdir(parents=True)
         for name in (
             "codex-valid-default-1.txt",
+            "codex-skill-trigger-1.txt",
+            "codex-start-page-1.txt",
+            "codex-github-fallback-1.txt",
             "trae-valid-default-1.txt",
-            "trae-valid-default-2.txt",
-            "trae-valid-default-3.txt",
+            "trae-skill-trigger-1.txt",
+            "trae-start-page-1.txt",
+            "trae-github-fallback-1.txt",
         ):
             complete_transcripts.joinpath(name).write_text(menu, encoding="utf-8")
         complete = run("scripts/agent_entry_readiness.py", "--trial-pack", str(complete_pack))
@@ -768,7 +828,7 @@ def test_agent_entry_readiness_reports_missing_and_complete_evidence() -> None:
     assert "transcript_codex-valid-default-1.txt: present" in partial.stdout
     assert "transcript_cursor-valid-default-1.txt" not in partial.stdout
     assert "collect_cursor_entry_transcript.py" not in partial.stdout
-    assert "trae-valid-default-3.txt" in partial.stdout
+    assert "trae-github-fallback-1.txt" in partial.stdout
     assert "- status: fail" in partial.stdout
     assert "- status: pass" in complete.stdout
     assert "missing_agents: none" in complete.stdout
@@ -800,15 +860,15 @@ def test_save_agent_entry_transcript_names_scores_and_blocks_unsafe_text() -> No
             str(input_file),
             check=False,
         )
-        for trial in ("1", "2", "3"):
+        for scenario in ("valid-default", "skill-trigger", "start-page", "github-fallback"):
             run(
                 "scripts/save_agent_entry_transcript.py",
                 "--trial-pack",
                 str(pack),
                 "--agent",
                 "trae",
-                "--trial",
-                trial,
+                "--scenario",
+                scenario,
                 "--input",
                 str(input_file),
             )
@@ -827,13 +887,13 @@ def test_save_agent_entry_transcript_names_scores_and_blocks_unsafe_text() -> No
         assert "transcript_saved:" in save_cursor.stdout
         assert "- status: pass" in save_cursor.stdout
         assert (pack / "transcripts/cursor-valid-default-1.txt").exists()
-        assert (pack / "transcripts/trae-valid-default-3.txt").exists()
+        assert (pack / "transcripts/trae-github-fallback-1.txt").exists()
         assert duplicate.returncode == 1
         assert "transcript_exists:" in duplicate.stdout
         assert unsafe.returncode == 1
         assert "transcript_blocked: secret_like_text" in unsafe.stdout
         assert "transcript_cursor-valid-default-1.txt" not in readiness.stdout
-        assert "transcript_trae-valid-default-3.txt: present" in readiness.stdout
+        assert "transcript_trae-github-fallback-1.txt: present" in readiness.stdout
         assert "transcript_codex-valid-default-1.txt: missing" in readiness.stdout
 
 
@@ -932,11 +992,13 @@ def test_memory_install_writes_agent_shortcuts() -> None:
     assert "Text shortcut: memory" in install.stdout
     assert "Text shortcuts: memory new, memory connect, memory backup" in install.stdout
     assert "Shell command installed: memory" in install.stdout
+    assert "Skill-capable Agents: $journeymem" in install.stdout
     assert "PATH action: add" in install.stdout
     assert all_expected_exist
     assert memory_shim_executable
     assert "Shell:" in install.stdout
     assert "Preferred:" in texts
+    assert "$journeymem" in texts
     assert "memory backup" in texts
     assert "/memory" in texts
     assert "memory new" in texts
@@ -953,7 +1015,8 @@ def test_memory_install_writes_agent_shortcuts() -> None:
     assert "scripts/memory" in texts
     assert "--root" in texts
     assert "Do not ask the user to hand-edit memory files" in texts
-    assert "Do not clone or inspect the JourneyMem GitHub repo" in texts
+    assert "Treat the JourneyMem GitHub URL as an install source" in texts
+    assert "Do not clone, inspect folder structure, summarize scripts" in texts
     assert_entry_response_style_rules(texts)
     assert duplicate.returncode == 1
     assert "install_blocked: target exists" in duplicate.stdout
@@ -1174,6 +1237,7 @@ def test_public_release_check_passes_package() -> None:
 def main() -> int:
     tests = [
         test_repo_agent_instructions_route_fresh_clone,
+        test_start_page_prompt_generation,
         test_init_creates_public_runtime,
         test_memory_shortcuts_and_backup_zip,
         test_memory_connect_finds_existing_library_from_registry,

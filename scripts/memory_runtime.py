@@ -600,6 +600,7 @@ Stable text entry for all Agents:
 - `memory new`: create a memory library for a new user. Ask one guided question at a time.
 - `memory connect`: connect this Agent to an existing memory library.
 - `memory backup`: create a zip backup. This is an available command, not a main first-use branch.
+- `$journeymem`: when explicit skill references are supported, treat this as the same as `memory`.
 
 Slash-capable Agents may also support:
 
@@ -608,12 +609,16 @@ Slash-capable Agents may also support:
 - `/memory connect`: connect this Agent to an existing memory library.
 - `/memory backup`: create a zip backup.
 
-Some Agents may not show custom slash commands in their command picker. Treat `memory`, `memory new`, `memory connect`, and `memory backup` as the reliable entry points and run the matching command below.
+Some Agents may not show custom slash commands in their command picker. Treat `memory`, `memory new`, `memory connect`, `memory backup`, and `$journeymem` as the reliable entry points and run the matching command below.
 
-Fresh clone rule:
+GitHub URL install-source fallback:
 
+- Treat the JourneyMem GitHub URL as an install source, not as a generic codebase task.
+- If the user gives `https://github.com/ivorywanj/agent-memory-starter-kit`, install or activate the JourneyMem skill/helper first when possible.
+- Do not clone, inspect folder structure, summarize scripts, or ask "what do you want to do with this repo?" before install/menu.
+- If the environment has already cloned the repo, do not explore it. Use its installer/helper and show the JourneyMem menu.
 - If the user only asks you to clone this repo or run `git clone ...` and `cd agent-memory-starter-kit`, do not infer that they want `memory new`.
-- After clone and cd, stop and ask the two-choice first-use question: create a new memory library or connect this Agent to an existing memory library.
+- After install, activation, clone, or cd, stop and ask the two-choice first-use question: create a new memory library or connect this Agent to an existing memory library.
 - Run `memory new` only after the user chooses create/new. Run `memory connect` only after the user chooses connect/existing.
 
 ## Response Style
@@ -683,6 +688,7 @@ Fallback if `memory` is not on PATH:
 If the user is new only because they just cloned the repo, do not start `memory new` automatically. Ask the two-choice first-use question first.
 If the user chooses create/new, start with `memory new` or `/memory new` where slash commands are supported.
 If the user chooses connect/existing, start with `memory connect` or `/memory connect` where slash commands are supported.
+If the user invokes `$journeymem`, treat it as `memory` and show the menu.
 Do not ask the user to hand-edit memory files.
 Do not store or print secrets.
 """
@@ -692,14 +698,14 @@ def codex_skill_text(root: Path) -> str:
     helper = command_helper_text(root)
     return f"""---
 name: journeymem
-description: Use when the user says JourneyMem, memory, memory new, memory connect, memory backup, or asks to set up, connect, share, or back up a JourneyMem library.
+description: Use when the user says JourneyMem, $journeymem, memory, memory new, memory connect, memory backup, gives the JourneyMem GitHub URL as an install source, or asks to set up, connect, share, or back up a JourneyMem library.
 ---
 
 # JourneyMem
 
 ## When To Use
 
-Use this skill when the user says `JourneyMem`, `memory`, `memory new`, `memory connect`, `memory backup`, or asks to set up, connect, share, or back up a JourneyMem library.
+Use this skill when the user says `JourneyMem`, `$journeymem`, `memory`, `memory new`, `memory connect`, `memory backup`, gives the JourneyMem GitHub URL as an install source, or asks to set up, connect, share, or back up a JourneyMem library.
 
 ## Instructions
 
@@ -855,7 +861,7 @@ def trae_rule_text(root: Path) -> str:
 
 Use this file when the user says `memory`, `memory new`, `memory connect`, or `memory backup`.
 
-Do not clone or inspect the JourneyMem GitHub repo when the user asks to use memory. Start from the command flow below.
+Treat the JourneyMem GitHub repo URL as an install source, not as a codebase task. Do not clone, inspect, or summarize the repo before install/menu. Start from the command flow below.
 
 {command_helper_text(root)}
 """
@@ -1061,6 +1067,7 @@ def command_install(args: argparse.Namespace) -> int:
     print("Text shortcut: memory")
     print("Text shortcuts: memory new, memory connect, memory backup")
     print("Shell command installed: memory")
+    print("Skill-capable Agents: $journeymem")
     print("Slash-capable Agents: /memory, /memory new, /memory connect, /memory backup")
     print("Codex custom slash commands are best-effort; current Codex may not show plugin commands.")
     print("If your Agent does not show slash commands, use the text shortcuts above.")

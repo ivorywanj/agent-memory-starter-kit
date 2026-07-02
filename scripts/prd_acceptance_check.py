@@ -32,6 +32,7 @@ CRITERIA: tuple[tuple[str, str], ...] = (
 
 TRANSCRIPT_IDS = {"A02", "A03", "A04", "A07", "A09", "A14"}
 LOCAL_TEST_IDS = {"A05", "A06", "A08", "A10", "A13", "A17"}
+REQUIRED_TRANSCRIPT_SCENARIOS = "valid_default,skill_trigger,start_page,github_fallback"
 
 
 @dataclass
@@ -65,7 +66,7 @@ def run_command(command: list[str], root: Path, timeout: int) -> CheckResult:
     summary_lines = [
         line
         for line in lines
-        if line.startswith(("- records:", "- failed:", "- missing_agents:", "- trae_trials:", "- status:"))
+        if line.startswith(("- records:", "- failed:", "- missing_agents:", "- missing_scenarios:", "- trae_trials:", "- status:"))
     ]
     detail = "; ".join(summary_lines[:5]) or (lines[0] if lines else f"exit_{completed.returncode}")
     return CheckResult("fail", detail[:220])
@@ -86,6 +87,8 @@ def transcript_check(root: Path, transcripts: Path | None, require_trae_trials: 
         str(transcripts),
         "--require-agents",
         "codex,trae",
+        "--require-scenarios",
+        REQUIRED_TRANSCRIPT_SCENARIOS,
         "--require-trae-trials",
         str(require_trae_trials),
     ]

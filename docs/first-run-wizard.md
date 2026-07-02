@@ -36,9 +36,11 @@ Choose one:
 - 1. Create a memory library
 - 2. Connect this Agent
 
-Fresh clone rule:
-- `git clone https://github.com/ivorywanj/agent-memory-starter-kit.git` plus `cd agent-memory-starter-kit` is not a choice.
-- After clone and cd, ask Question 0.
+GitHub install-source fallback rule:
+- `https://github.com/ivorywanj/agent-memory-starter-kit` is an install source, not a codebase task.
+- `git clone https://github.com/ivorywanj/agent-memory-starter-kit.git` plus `cd agent-memory-starter-kit` is not a user choice.
+- Do not inspect structure or summarize scripts before install/menu.
+- After install, activation, clone, or cd, ask Question 0.
 - Do not run `memory new` until the user chooses option 1.
 - Do not run `memory connect` until the user chooses option 2.
 
