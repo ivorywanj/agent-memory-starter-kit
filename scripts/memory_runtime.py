@@ -213,28 +213,56 @@ def valid_registry_libraries(home: Path | None = None) -> list[dict]:
     registry = load_registry(home)
     items: list[dict] = []
     seen: set[str] = set()
+
+    def add_candidate(name: str, root: Path, *, at_front: bool = False) -> None:
+        key = str(root.resolve()) if root.exists() else str(root)
+        if key in seen or not is_memory_library(root):
+            return
+        seen.add(key)
+        item = {"name": name, "path": root}
+        if at_front:
+            items.insert(0, item)
+        else:
+            items.append(item)
+
     for item in registry.get("libraries", []):
         path_text = item.get("path")
         if not path_text:
             continue
         root = Path(path_text).expanduser()
-        key = str(root.resolve()) if root.exists() else str(root)
-        if key in seen or not is_memory_library(root):
-            continue
-        seen.add(key)
-        items.append({"name": item.get("name") or root.name, "path": root})
+        add_candidate(item.get("name") or root.name, root)
     default_text = registry.get("default_library")
     if default_text:
         default = Path(default_text).expanduser()
-        key = str(default.resolve()) if default.exists() else str(default)
-        if key not in seen and is_memory_library(default):
-            seen.add(key)
-            items.insert(0, {"name": "default", "path": default})
+        add_candidate("default", default, at_front=True)
     fallback = default_library_root(home)
-    key = str(fallback.resolve()) if fallback.exists() else str(fallback)
-    if key not in seen and is_memory_library(fallback):
-        items.insert(0, {"name": "default", "path": fallback})
+    add_candidate("default", fallback, at_front=True)
+    for name, root in local_memory_library_candidates(home):
+        add_candidate(name, root)
     return items
+
+
+def local_memory_library_candidates(home: Path | None = None) -> list[tuple[str, Path]]:
+    """Return narrow local fallback paths without scanning the user's folders."""
+    candidates: list[tuple[str, Path]] = []
+    if home is None:
+        for env_name in ("JOURNEYMEM_LIBRARY", "JOURNEYMEM_ROOT"):
+            value = os.environ.get(env_name, "").strip()
+            if value:
+                candidates.append((env_name.lower(), Path(value).expanduser()))
+        candidates.append(("package", repo_root()))
+    user_home = home.expanduser() if home is not None else Path.home()
+    candidates.extend(
+        [
+            ("Agent Memory", user_home / "Documents/Agent Memory"),
+            ("JourneyMem", user_home / "Documents/JourneyMem"),
+            ("JourneyMem", user_home / "Documents/JourneyMem Library"),
+            ("JourneyMem", user_home / "JourneyMem"),
+            ("JourneyMem", user_home / "JourneyMem Library"),
+            ("Agent Memory", user_home / "Agent Memory"),
+        ]
+    )
+    return candidates
 
 
 def choose_registry_library(home: Path | None, library: str | None, library_index: int | None) -> tuple[Path | None, str, list[dict]]:
@@ -1475,7 +1503,7 @@ def command_connect(args: argparse.Namespace) -> int:
         print("connect_blocked: not a JourneyMem memory library")
         print("Required files: AGENTS.md, ONBOARDING.md, memory/hot/USER.md, memory/hot/MEMORY.md")
         return 1
-    if found_existing:
+    if found_existing and not args.print_only:
         register_library(home, root, "default" if root == default_library_root(home).resolve() else root.name)
     target = bridge_target_for(agent, args.workspace, args.target, root)
     content = agent_connection_text(root, agent)
