@@ -186,29 +186,27 @@ def test_start_page_prompt_generation() -> None:
         assert "API key" not in text
 
 
-def test_readme_starts_with_first_use_menu_before_install_or_clone() -> None:
+def test_readme_quickstart_installs_before_menu_or_connect() -> None:
     text = (ROOT / "README.md").read_text(encoding="utf-8")
+    installer = "curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash"
+    installer_index = text.index(installer)
+    run_index = text.index("Run it:")
     menu_index = text.index("What do you want to do?")
     before_menu = text[:menu_index]
-    assert "curl -fsSL" not in before_menu
     assert "git clone" not in before_menu
     assert "./install.sh" not in before_menu
+    assert installer_index < run_index < menu_index
+    assert text.index("memory", run_index) < menu_index
     assert "git clone https://github.com/ivorywanj/agent-memory-starter-kit.git" not in text
+    assert "Install JourneyMem once:" in text
+    assert "Choose what you want to do:" in text
+    assert "For connect fallback when PATH is not loaded:" in text
     assert "If an Agent is reading this README because you pasted the GitHub link" in text
     assert "run the hosted installer above instead of summarizing or cloning the repository" in text
     assert "~/.local/bin/memory connect" in text
     assert "checks `~/.journeymem/registry.json` and the default JourneyMem library path before asking for any folder path" in text
-    first_blocked_command = min(
-        index
-        for index in (
-            text.find("curl -fsSL"),
-            text.find("git clone"),
-            text.find("./install.sh"),
-        )
-        if index != -1
-    )
-    assert text.index("1. memory new - Create a memory library") < first_blocked_command
-    assert text.index("2. memory connect - Connect this Agent to an existing memory library") < first_blocked_command
+    assert text.index("1. memory new - Create a memory library") > installer_index
+    assert text.index("2. memory connect - Connect this Agent to an existing memory library") > installer_index
 
 
 def test_init_creates_public_runtime() -> None:
@@ -1245,6 +1243,10 @@ def test_install_script_installs_command_without_creating_memory_library() -> No
     assert f"{home}/.local/bin/memory" in result.stdout
     assert "If memory is not found in this terminal, run:" in result.stdout
     assert f'export PATH="{home}/.local/bin:$PATH"' in result.stdout
+    assert "What do you want to do?" in result.stdout
+    assert "1. memory new - Create a memory library" in result.stdout
+    assert "2. memory connect - Connect this Agent to an existing memory library" in result.stdout
+    assert "- memory backup - Back up a memory library" in result.stdout
     assert registry == {"agents": {}, "default_library": None, "libraries": [], "version": 1}
     assert memory_cmd_exists
     assert memory_cmd_executable
@@ -1270,6 +1272,9 @@ def test_install_script_installs_command_without_creating_memory_library() -> No
     assert not auto_trae_helper
     assert remote_result.returncode == 0, remote_result.stdout
     assert "JourneyMem installed" in remote_result.stdout
+    assert "What do you want to do?" in remote_result.stdout
+    assert "1. memory new - Create a memory library" in remote_result.stdout
+    assert "2. memory connect - Connect this Agent to an existing memory library" in remote_result.stdout
     assert "A local memory library for AI agents." in remote_package_readme
     assert "stale package" not in remote_package_readme
     assert str(remote_package / "scripts/memory") in remote_shim_text
@@ -1332,7 +1337,7 @@ def main() -> int:
     tests = [
         test_repo_agent_instructions_route_fresh_clone,
         test_start_page_prompt_generation,
-        test_readme_starts_with_first_use_menu_before_install_or_clone,
+        test_readme_quickstart_installs_before_menu_or_connect,
         test_init_creates_public_runtime,
         test_memory_shortcuts_and_backup_zip,
         test_memory_connect_finds_existing_library_from_registry,
