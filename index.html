@@ -79,6 +79,22 @@
       background: var(--accent);
       color: #fff;
     }
+    button.copy {
+      margin: 0 16px 12px;
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font: inherit;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button.copy.copied {
+      border-color: #1f883d;
+      background: #1f883d;
+    }
     section {
       padding: 28px 0;
       border-bottom: 1px solid var(--line);
@@ -172,11 +188,12 @@
 
     <section id="agent-prompts">
       <h2>Copy an Agent-ready prompt</h2>
-      <p>Use one of these when you need to start from an Agent message. The Agent should install or activate JourneyMem first, then show the menu.</p>
+      <p>Click a copy button when you need to start from an Agent message. The Agent should install or activate JourneyMem first, then show the menu.</p>
 
       <details open>
         <summary>Codex</summary>
-        <pre><code>I want to use JourneyMem in Codex.
+        <button class="copy" type="button" data-target="codex-prompt">Copy Codex prompt</button>
+        <pre><code id="codex-prompt">I want to use JourneyMem in Codex.
 Install or activate JourneyMem first. If you need the package, use this install source: https://github.com/ivorywanj/agent-memory-starter-kit
 Do not clone, inspect folder structure, summarize scripts, or ask what to do with this repo before install/menu.
 Then show exactly:
@@ -190,7 +207,8 @@ Other command:
 
       <details>
         <summary>TRAE Work</summary>
-        <pre><code>I want to use JourneyMem in TRAE Work.
+        <button class="copy" type="button" data-target="trae-prompt">Copy TRAE Work prompt</button>
+        <pre><code id="trae-prompt">I want to use JourneyMem in TRAE Work.
 Install or activate JourneyMem first. If you need the package, use this install source: https://github.com/ivorywanj/agent-memory-starter-kit
 Do not clone, inspect folder structure, summarize scripts, or ask what to do with this repo before install/menu.
 Then show exactly:
@@ -204,7 +222,8 @@ Other command:
 
       <details>
         <summary>Claude Code</summary>
-        <pre><code>I want to use JourneyMem in Claude Code.
+        <button class="copy" type="button" data-target="claude-prompt">Copy Claude Code prompt</button>
+        <pre><code id="claude-prompt">I want to use JourneyMem in Claude Code.
 Install or activate JourneyMem first. If you need the package, use this install source: https://github.com/ivorywanj/agent-memory-starter-kit
 Do not clone, inspect folder structure, summarize scripts, or ask what to do with this repo before install/menu.
 Then show exactly:
@@ -218,7 +237,8 @@ Other command:
 
       <details>
         <summary>Cursor</summary>
-        <pre><code>I want to use JourneyMem in Cursor.
+        <button class="copy" type="button" data-target="cursor-prompt">Copy Cursor prompt</button>
+        <pre><code id="cursor-prompt">I want to use JourneyMem in Cursor.
 Install or activate JourneyMem first. If you need the package, use this install source: https://github.com/ivorywanj/agent-memory-starter-kit
 Do not clone, inspect folder structure, summarize scripts, or ask what to do with this repo before install/menu.
 Then show exactly:
@@ -232,7 +252,8 @@ Other command:
 
       <details>
         <summary>Other Agent</summary>
-        <pre><code>I want to use JourneyMem in my current Agent.
+        <button class="copy" type="button" data-target="other-prompt">Copy prompt</button>
+        <pre><code id="other-prompt">I want to use JourneyMem in my current Agent.
 Install or activate JourneyMem first. If you need the package, use this install source: https://github.com/ivorywanj/agent-memory-starter-kit
 Do not clone, inspect folder structure, summarize scripts, or ask what to do with this repo before install/menu.
 Then show exactly:
@@ -252,5 +273,21 @@ Other command:
       <p>You can use the default backup folder or choose a custom save path.</p>
     </section>
   </main>
+  <script>
+    document.querySelectorAll("button.copy").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const target = document.getElementById(button.dataset.target);
+        const text = target ? target.innerText : "";
+        if (!text) return;
+        try {
+          await navigator.clipboard.writeText(text);
+          button.textContent = "Copied";
+          button.classList.add("copied");
+        } catch {
+          window.prompt("Copy this prompt", text);
+        }
+      });
+    });
+  </script>
 </body>
 </html>

@@ -89,4 +89,11 @@ fi
 
 echo ""
 echo "JourneyMem installed"
-echo "Next step: type memory, then choose memory new or memory connect."
+echo "Start now:"
+echo "  $HOME_DIR/.local/bin/memory"
+echo ""
+echo "If your shell already has $HOME_DIR/.local/bin on PATH, you can also type:"
+echo "  memory"
+echo ""
+echo "If memory is not found in this terminal, run:"
+echo "  export PATH=\"$HOME_DIR/.local/bin:\$PATH\""

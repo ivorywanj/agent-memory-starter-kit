@@ -6,31 +6,37 @@ JourneyMem helps Codex, Claude Code, Cursor, TRAE Work, and other Agents that ca
 
 ## Quickstart
 
-User-facing Start Page:
-
-```text
-https://ivorywanj.github.io/agent-memory-starter-kit/
-```
-
-Use the Start Page to choose setup, current-Agent use, or backup, then copy an Agent-ready prompt.
-
-Recommended path: install JourneyMem once, then use the installed skill/helper from any supported Agent.
+For most users, install JourneyMem once from Terminal:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash
 ```
 
-The installer creates `~/.journeymem/`, installs the `memory` command, and writes Agent helper files. It detects the current Agent when possible; when it cannot detect one, it installs helpers for all supported Agents. It does not create a personal memory library until the user chooses `memory new`, and it does not import workspace files.
+Then start immediately:
 
-Open Codex, TRAE Work, Claude Code, Cursor, or another Agent that can read project files.
+```bash
+~/.local/bin/memory
+```
 
-Type:
+If your terminal or Agent already knows `~/.local/bin`, you can type:
 
 ```text
 memory
 ```
 
-If your Agent supports explicit skill references, you can also use the installed local skill:
+Optional Start Page:
+
+```text
+https://ivorywanj.github.io/agent-memory-starter-kit/
+```
+
+The Start Page has copy buttons for Agent-specific prompts. Users do not write prompts by hand. If the page is unavailable, use the Terminal install command above.
+
+The installer creates `~/.journeymem/`, installs the `memory` command, and writes Agent helper files. It detects the current Agent when possible; when it cannot detect one, it installs helpers for all supported Agents. It does not create a personal memory library until the user chooses `memory new`, and it does not import workspace files.
+
+Open Codex, TRAE Work, Claude Code, Cursor, or another Agent that can read project files, then type `memory`.
+
+If your Agent supports explicit skill references, you can also use the installed local skill after install:
 
 ```text
 [$journeymem](<generated-local-skill-path>/SKILL.md)
@@ -48,14 +54,6 @@ Other command:
 ```
 
 Do not paste only the GitHub URL into an Agent as the normal quickstart. Many Agents treat a bare GitHub URL like a generic code repo to clone and inspect. JourneyMem's GitHub URL is an install source fallback, not the primary Agent entry.
-
-If an Agent receives the JourneyMem GitHub URL anyway, it should treat it as an install source:
-
-```text
-Install or activate JourneyMem first.
-Do not clone, inspect folder structure, summarize scripts, or ask what to do with this repo before install/menu.
-Then show the JourneyMem menu.
-```
 
 Manual terminal fallback only:
 
@@ -82,7 +80,7 @@ The installer writes a real `memory` shell command into `~/.local/bin` so Agents
 
 Slash-capable Agents may also support `/memory`, `/memory new`, `/memory connect`, and `/memory backup`, but the stable entry is `memory`.
 
-If `memory` is not found, rerun install and check the PATH note in the output.
+If `memory` is not found in the current shell, run `~/.local/bin/memory` or restart the terminal / Agent so the PATH update is picked up. Do not rerun setup just because the short command is not on PATH yet.
 
 Then use these troubleshooting commands only when the Agent prompt flow is not available:
 

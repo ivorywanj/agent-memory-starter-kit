@@ -147,6 +147,13 @@ def test_start_page_prompt_generation() -> None:
         assert "1. Set up JourneyMem on this computer" in text
         assert "2. Use JourneyMem in my current Agent" in text
         assert "3. Back up or move my memory library" in text
+        assert "Click a copy button when you need to start from an Agent message." in text
+        assert "Copy Codex prompt" in text
+        assert "Copy TRAE Work prompt" in text
+        assert "Copy Claude Code prompt" in text
+        assert "Copy Cursor prompt" in text
+        assert 'data-target="codex-prompt"' in text
+        assert "navigator.clipboard.writeText" in text
         for agent in ("Codex", "TRAE Work", "Claude Code", "Cursor", "Other Agent"):
             assert f"<summary>{agent}</summary>" in text
         assert text.count("Install or activate JourneyMem first.") >= 5
@@ -1150,7 +1157,10 @@ def test_install_script_installs_command_without_creating_memory_library() -> No
 
     assert result.returncode == 0, result.stdout
     assert "JourneyMem installed" in result.stdout
-    assert "Next step: type memory, then choose memory new or memory connect." in result.stdout
+    assert "Start now:" in result.stdout
+    assert f"{home}/.local/bin/memory" in result.stdout
+    assert "If memory is not found in this terminal, run:" in result.stdout
+    assert f'export PATH="{home}/.local/bin:$PATH"' in result.stdout
     assert registry == {"agents": {}, "default_library": None, "libraries": [], "version": 1}
     assert memory_cmd_exists
     assert memory_cmd_executable
