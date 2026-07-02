@@ -78,9 +78,11 @@ README_REQUIRED_SNIPPETS = (
     "Users do not write prompts by hand.",
     "curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash",
     "~/.local/bin/memory",
+    "~/.local/bin/memory connect",
+    "If an Agent is reading this README because you pasted the GitHub link",
+    "run the hosted installer above instead of summarizing or cloning the repository",
     "installed local skill",
     "GitHub URL is an install source fallback",
-    "./install.sh",
     "detects the current Agent when possible",
     "when it cannot detect one, it installs helpers for all supported Agents",
     "It does not create a personal memory library until the user chooses `memory new`",
@@ -94,14 +96,13 @@ README_REQUIRED_SNIPPETS = (
     "If `memory` is not found in the current shell, run `~/.local/bin/memory`",
     "real `memory` shell command",
     "[$journeymem](<generated-local-skill-path>/SKILL.md)",
-    "Manual terminal fallback only:",
     "./scripts/memory new",
     "For first-time setup, the Agent should not explain setup internals or ask where to store the files.",
     "only show the next useful question",
     "Do not show the full questionnaire upfront",
     "Do not ask where to store the memory library during `memory new`; use the default location.",
     "Do you want to create a new memory library, or connect this Agent to an existing memory library?",
-    "Install-source fallback rule: if the JourneyMem GitHub URL or a manual clone appears first",
+    "Install-source fallback rule: if the JourneyMem GitHub URL appears first",
     "no import is needed",
     "checks `~/.journeymem/registry.json` and the default JourneyMem library path before asking for any folder path",
     "AGENTS.md`, `ONBOARDING.md`, `memory/hot/USER.md`, and `memory/hot/MEMORY.md",
@@ -138,9 +139,11 @@ START_PAGE_REQUIRED_SNIPPETS = (
     "Claude Code",
     "Cursor",
     "Other Agent",
-    "Install or activate JourneyMem first.",
-    "use this install source: https://github.com/ivorywanj/agent-memory-starter-kit",
-    "Do not clone, inspect folder structure, summarize scripts, or ask what to do with this repo before install/menu.",
+    "If the memory command is unavailable, run this installer first:",
+    "curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash",
+    "~/.local/bin/memory connect",
+    "Check the local registry/default path before asking for a folder.",
+    "Do not use git clone as the visible setup step.",
     "What do you want to do?",
     "1. memory new - Create a memory library",
     "2. memory connect - Connect this Agent to an existing memory library",
@@ -153,6 +156,9 @@ AGENTS_REQUIRED_SNIPPETS = (
     "do not read files, inspect folders, or explain existing memory contents",
     "do not summarize the repository structure",
     "install or activate JourneyMem first",
+    "curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash",
+    "~/.local/bin/memory connect",
+    "checks `~/.journeymem/registry.json` and the default JourneyMem library path before asking for a folder",
     "I can help you use JourneyMem.",
     "`memory new` - Create a new memory library",
     "`memory connect` - Connect this Agent to an existing memory library",
@@ -213,6 +219,23 @@ DOC_REQUIRED_SNIPPETS = (
             "Folder-path prompt on valid default = 0.",
         ),
     ),
+)
+RUNTIME_REQUIRED_SNIPPETS = (
+    "alwaysApply: true",
+    "description: Always load JourneyMem",
+    "This rule must be active in every new TRAE Work conversation",
+    "Do not say you do not know until those files were checked.",
+    "This connection file alone is not the memory.",
+    "a complete answer requires reading",
+    "TRAE_NATIVE_MEMORY_BEGIN",
+    "This TRAE native memory file is connected",
+    "This block is a bounded startup cache plus pointer",
+    "upsert_marked_block",
+    "TRAE native memory bridge",
+    "{memory_cmd} connect",
+    "curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash",
+    "~/.local/bin/memory connect",
+    "`connect`: run `{memory_cmd} connect`.",
 )
 AGENT_INSTRUCTION_FILES = (
     "AGENTS.md",
@@ -280,12 +303,11 @@ def main() -> int:
                 snippet_index = readme_text.find(snippet)
                 if snippet_index == -1 or snippet_index > first_blocked_command:
                     findings.append(f"README.md first-use option appears after install/clone command: {snippet}")
-        before_fallback = readme_text.split("Manual terminal fallback only:", 1)[0]
-        if "./scripts/memory new" in before_fallback:
-            findings.append("README.md promotes ./scripts/memory new before fallback")
-        before_manual_fallback = readme_text.split("Manual terminal fallback only:", 1)[0]
-        if "git clone " in before_manual_fallback:
-            findings.append("README.md promotes bare git clone before Agent prompt")
+        before_troubleshooting = readme_text.split("Then use these troubleshooting commands only when the Agent prompt flow is not available:", 1)[0]
+        if "./scripts/memory new" in before_troubleshooting:
+            findings.append("README.md promotes ./scripts/memory new before troubleshooting")
+        if "git clone https://github.com/ivorywanj/agent-memory-starter-kit.git" in readme_text:
+            findings.append("README.md exposes git clone as user-facing JourneyMem fallback")
     for rel in ("index.html", "docs/index.html"):
         start_page = ROOT / rel
         if not start_page.exists():
@@ -322,6 +344,12 @@ def main() -> int:
         for snippet in snippets:
             if snippet not in doc_text:
                 findings.append(f"{rel} missing snippet: {snippet}")
+    runtime_file = ROOT / "scripts/memory_runtime.py"
+    if runtime_file.exists():
+        runtime_text = runtime_file.read_text(encoding="utf-8", errors="replace")
+        for snippet in RUNTIME_REQUIRED_SNIPPETS:
+            if snippet not in runtime_text:
+                findings.append(f"scripts/memory_runtime.py missing snippet: {snippet}")
     for path in iter_text_files():
         rel = path.relative_to(ROOT)
         text = path.read_text(encoding="utf-8", errors="replace")

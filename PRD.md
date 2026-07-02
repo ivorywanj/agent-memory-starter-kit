@@ -174,3 +174,184 @@ If Computer Use reaches a login, permission, upload, external submission, or sen
 ## Open Questions
 
 - None for the first implementation pass.
+
+---
+
+# Addendum: TRAE connect Must Persist Into New Conversations
+
+Status: Draft for implementation
+Owner: project maintainer
+Date: 2026-07-02
+
+## Problem
+
+The menu-first fix makes TRAE Work show `memory new` / `memory connect`, but a connected TRAE Work conversation can still fail the real user outcome: after `memory connect`, a new TRAE Work conversation answers "I do not know your name" instead of reading the connected JourneyMem memory library.
+
+This means the first-screen behavior is correct, but the connection is not reliably active across fresh TRAE Work conversations.
+
+## Goal
+
+After `memory connect` for TRAE Work, a fresh TRAE Work conversation in the connected workspace must know how to load the shared memory library before answering personal-memory questions such as "What do you call me?" or "你怎么称呼我".
+
+## Non-Goals
+
+- Do not copy the full user profile into the TRAE workspace.
+- Do not store secrets, raw sessions, or full private memory history inside generated TRAE helper files.
+- Do not overwrite existing TRAE native memory; JourneyMem may only upsert its own marked bridge block.
+- Do not require users to paste defensive prompts into every new conversation.
+- Do not add a hosted service, database, vector index, or background daemon.
+
+## Expected User Flow
+
+1. User runs `memory connect` in TRAE Work or selects the connected TRAE Work workspace.
+2. JourneyMem writes TRAE-readable connection files into that workspace and upserts a bounded JourneyMem bridge into TRAE native memory.
+3. User opens a new TRAE Work conversation in the same connected workspace.
+4. User asks a natural memory question, for example:
+
+```text
+你怎么称呼我
+```
+
+5. TRAE Work reads the connected memory library startup files and answers from JourneyMem, not from guesswork.
+
+## Quantitative Acceptance Metrics
+
+- `memory connect --agent trae --workspace <workspace>` writes a TRAE connection rule that:
+  - points to the shared memory library path,
+  - explicitly marks the rule as always loaded when TRAE supports always-loaded rule metadata,
+  - instructs TRAE to read `AGENTS.md`, `ONBOARDING.md`, `memory/hot/USER.md`, and `memory/hot/MEMORY.md` before answering personal-memory questions.
+- Generated TRAE connection files must not contain copied user profile facts such as a real user name or project facts.
+- `memory connect --agent trae` also upserts `~/.trae-cn/memory/user_profile.md` with a marked JourneyMem native memory bridge:
+  - preserves existing TRAE native memory text,
+  - includes the shared memory library path,
+  - includes a bounded startup cache from `memory/hot/USER.md` and `memory/hot/MEMORY.md`,
+  - blocks if the bridge text contains secret-shaped content.
+- Unit tests must fail if the generated TRAE connection file does not include the always-loaded rule metadata and personal-memory trigger language, or if the TRAE native memory bridge is missing.
+- A real TRAE Work UI smoke test must pass:
+  - new conversation in the connected workspace,
+  - user asks `你怎么称呼我`,
+  - first answer uses the connected JourneyMem memory and does not say it does not know.
+
+## Test Protocol
+
+Local gates:
+
+```bash
+python3 tests/test_public_package.py
+python3 scripts/public_release_check.py
+python3 scripts/memory_guard.py
+git diff --check
+```
+
+TRAE Work smoke test:
+
+1. Create or reuse a JourneyMem library whose `memory/hot/USER.md` contains a non-guessable test name.
+2. Run `memory connect --agent trae --workspace <trae-workspace>`.
+3. Open TRAE Work with that workspace selected.
+4. Start a new conversation and ask:
+
+```text
+你怎么称呼我
+```
+
+5. Pass only if TRAE answers with the stored JourneyMem name or test code without asking the user to provide it again.
+
+---
+
+# Addendum: TRAE Reinstall Then Connect Must Discover Existing Local Memory
+
+Status: Draft for implementation
+Owner: project maintainer
+Date: 2026-07-02
+
+## Problem
+
+After uninstalling the active TRAE helper files, a real TRAE Work user can start again from the GitHub repository link, see a JourneyMem menu, choose to connect to an existing memory library, and still fail. TRAE Work may summarize the repository, show `git clone`, or look only in the current task folder for `AGENTS.md` instead of installing JourneyMem and running the local `memory connect` command.
+
+The local JourneyMem registry can already contain a valid default library at `~/.journeymem/registry.json`. The failure is that the reinstall entry path does not reliably route TRAE to the installed local command that checks that registry.
+
+## Goal
+
+When a TRAE Work user starts from the public GitHub/Start Page entry after helper files were removed, JourneyMem must guide the Agent to install/activate the local `memory` command first. When the user chooses connect/existing, the flow must run `memory connect` or `~/.local/bin/memory connect`, which checks the local registry/default path before asking for a folder.
+
+## Non-Goals
+
+- Do not require users to paste a defensive test prompt.
+- Do not make users manually browse for `/Users/.../Agent Memory` when a valid local registry exists.
+- Do not treat the GitHub repository as the memory library.
+- Do not ask TRAE to inspect, summarize, or clone the repo as the primary flow.
+- Do not move, copy, import, or overwrite the shared memory library.
+
+## Expected User Flow
+
+1. TRAE helper files and TRAE native memory are absent or stale.
+2. User gives TRAE a normal JourneyMem entry, for example:
+
+```text
+https://github.com/ivorywanj/agent-memory-starter-kit 我想用这个journeymem记忆系统
+```
+
+3. TRAE installs or activates JourneyMem using the hosted installer, not by summarizing the repo.
+4. TRAE shows the first-use menu.
+5. User says:
+
+```text
+连接到一个已有的记忆库
+```
+
+6. TRAE runs the local connect command. It must check `~/.journeymem/registry.json` and the default JourneyMem library path before asking for a folder.
+7. If exactly one valid local memory library exists, TRAE connects automatically and reports the connected library path.
+
+## Quantitative Acceptance Metrics
+
+- Public README and Start Page Agent prompts must contain the concrete hosted installer command:
+
+```bash
+curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash
+```
+
+- Public README and Start Page Agent prompts must contain the concrete fallback command:
+
+```bash
+~/.local/bin/memory connect
+```
+
+- Public README must not present `git clone https://github.com/ivorywanj/agent-memory-starter-kit.git` as a normal quickstart or Agent-facing fallback.
+- Generated TRAE helper text must say that GitHub URL entry is not enough; if `memory` is unavailable, run the hosted installer, then run `~/.local/bin/memory connect` for connect/existing.
+- Unit tests must fail if the Start Page TRAE prompt only says "use this install source: GitHub" without the hosted install command.
+- Unit tests must fail if README still exposes `git clone` as the user-facing fallback.
+- With a valid `~/.journeymem/registry.json`, `memory connect --agent trae --workspace <workspace>` must connect without asking for a folder path.
+- External TRAE Work reinstall/connect smoke test must pass:
+  - Begin from a fresh TRAE task after removing active helper files.
+  - Use a realistic GitHub-link entry message.
+  - Choose connect/existing in natural Chinese.
+  - Pass only if TRAE installs/activates JourneyMem and connects to the existing local library without asking the user where the library is.
+
+## Test Protocol
+
+Local gates:
+
+```bash
+python3 tests/test_public_package.py
+python3 scripts/public_release_check.py
+python3 scripts/memory_guard.py
+git diff --check
+```
+
+TRAE Work smoke test:
+
+1. Remove active TRAE JourneyMem helper files or use a TRAE workspace without them.
+2. Confirm `~/.journeymem/registry.json` points to one valid JourneyMem library.
+3. Start a fresh TRAE Work task with:
+
+```text
+https://github.com/ivorywanj/agent-memory-starter-kit 我想用这个journeymem记忆系统
+```
+
+4. When TRAE shows the menu, choose:
+
+```text
+连接到一个已有的记忆库
+```
+
+5. Pass only if TRAE runs the local connect command and reports a successful connection to the existing local library. Asking "where is your memory library?" is a failure when the registry has one valid candidate.
