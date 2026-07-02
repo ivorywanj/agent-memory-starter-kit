@@ -36,7 +36,7 @@ transcripts/
 Each file should contain only the first visible Agent response.
 Optional Cursor evidence can be saved as `cursor-valid-default-1.txt`, but it is not required by the PRD gate.
 
-The generated prompt files are intentionally one line so Agent input boxes do not split the instruction into partial messages.
+The generated prompt files intentionally imitate realistic user messages. They do not tell the Agent "do not clone", "do not inspect", or "reply exactly"; the scorer verifies behavior from the first visible response.
 
 ## Run The Scorer
 
@@ -44,6 +44,15 @@ To create a collection pack for real Codex and TRAE Work trials:
 
 ```bash
 python3 scripts/prepare_agent_entry_trials.py --output agent-entry-trials
+```
+
+The TRAE Work acceptance prompts should look like real user inputs:
+
+```text
+memory
+$journeymem
+I want to use JourneyMem from this Start Page: https://ivorywanj.github.io/agent-memory-starter-kit/
+I want to use JourneyMem. Here is the repo: https://github.com/ivorywanj/agent-memory-starter-kit
 ```
 
 If Codex CLI is available on this machine, collect the Codex transcript automatically:

@@ -6,7 +6,28 @@ JourneyMem helps Codex, Claude Code, Cursor, TRAE Work, and other Agents that ca
 
 ## Quickstart
 
-For most users, install JourneyMem once from Terminal:
+Start with the JourneyMem menu:
+
+```text
+memory
+```
+
+Open Codex, TRAE Work, Claude Code, Cursor, or another Agent that can read project files, then type `memory`.
+
+The Agent should show:
+
+```text
+What do you want to do?
+1. memory new - Create a memory library
+2. memory connect - Connect this Agent to an existing memory library
+
+Other command:
+- memory backup - Back up a memory library
+```
+
+Choose `memory new` if this is your first JourneyMem library. Choose `memory connect` if this Agent should use an existing memory library.
+
+If the `memory` command is not available yet, install JourneyMem once from Terminal:
 
 ```bash
 curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash
@@ -18,12 +39,6 @@ Then start immediately:
 ~/.local/bin/memory
 ```
 
-If your terminal or Agent already knows `~/.local/bin`, you can type:
-
-```text
-memory
-```
-
 Optional Start Page:
 
 ```text
@@ -33,8 +48,6 @@ https://ivorywanj.github.io/agent-memory-starter-kit/
 The Start Page has copy buttons for Agent-specific prompts. Users do not write prompts by hand. If the page is unavailable, use the Terminal install command above.
 
 The installer creates `~/.journeymem/`, installs the `memory` command, and writes Agent helper files. It detects the current Agent when possible; when it cannot detect one, it installs helpers for all supported Agents. It does not create a personal memory library until the user chooses `memory new`, and it does not import workspace files.
-
-Open Codex, TRAE Work, Claude Code, Cursor, or another Agent that can read project files, then type `memory`.
 
 If your Agent supports explicit skill references, you can also use the installed local skill after install:
 

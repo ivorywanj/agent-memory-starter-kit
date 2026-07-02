@@ -151,36 +151,42 @@
     <header>
       <p class="eyebrow">JourneyMem Start</p>
       <h1>Start JourneyMem without making your Agent inspect a repo.</h1>
-      <p>Install once, then type <strong>memory</strong> in Codex, TRAE Work, Claude Code, Cursor, or another Agent.</p>
+      <p>Start with the JourneyMem menu. Open Codex, TRAE Work, Claude Code, Cursor, or another Agent, then type <strong>memory</strong>.</p>
+      <pre><code>What do you want to do?
+1. memory new - Create a memory library
+2. memory connect - Connect this Agent to an existing memory library
+
+Other command:
+- memory backup - Back up a memory library</code></pre>
       <div class="actions">
-        <a class="button primary" href="#install">Install JourneyMem</a>
-        <a class="button" href="#agent-prompts">Copy Agent prompt</a>
+        <a class="button primary" href="#agent-prompts">Copy Agent prompt</a>
+        <a class="button" href="#install">Command not available?</a>
         <a class="button" href="#backup">Back up memory</a>
       </div>
     </header>
     <!-- first-screen-end -->
 
     <section id="choose">
-      <h2>What do you want to do?</h2>
+      <h2>After the menu</h2>
       <div class="choice-grid">
         <div class="choice">
-          <strong>1. Set up JourneyMem on this computer</strong>
-          <span>Install the helper, open your Agent, then type <code>memory</code>.</span>
+          <strong>Use memory new</strong>
+          <span>Create your first memory library only after choosing the new-library path.</span>
         </div>
         <div class="choice">
-          <strong>2. Use JourneyMem in my current Agent</strong>
-          <span>Copy the matching Agent prompt below so the Agent opens the JourneyMem menu first.</span>
+          <strong>Use JourneyMem in my current Agent</strong>
+          <span>Connect this Agent to an existing memory library without copying memory files.</span>
         </div>
         <div class="choice">
-          <strong>3. Back up or move my memory library</strong>
+          <strong>Back up or move my memory library</strong>
           <span>Create a zip backup, then connect from the new computer.</span>
         </div>
       </div>
     </section>
 
     <section id="install">
-      <h2>Install</h2>
-      <p>Run this once on your computer. It installs the <code>memory</code> command and Agent helper files.</p>
+      <h2>Command not available?</h2>
+      <p>If the memory command is not available yet, run this once on your computer. It installs the <code>memory</code> command and Agent helper files.</p>
       <pre><code>curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash</code></pre>
       <p>After install, open your Agent and type:</p>
       <pre><code>memory</code></pre>

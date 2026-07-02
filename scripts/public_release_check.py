@@ -32,6 +32,7 @@ REQUIRED_FILES = (
     "JOURNEYMEM.md",
     "index.html",
     "README.md",
+    "PRD.md",
     "LICENSE",
     "SECURITY.md",
     "CONTRIBUTING.md",
@@ -71,7 +72,7 @@ REQUIRED_FILES = (
 README_REQUIRED_SNIPPETS = (
     "A local memory library for AI agents.",
     "## Quickstart",
-    "For most users, install JourneyMem once from Terminal:",
+    "Start with the JourneyMem menu:",
     "https://ivorywanj.github.io/agent-memory-starter-kit/",
     "The Start Page has copy buttons for Agent-specific prompts.",
     "Users do not write prompts by hand.",
@@ -84,6 +85,8 @@ README_REQUIRED_SNIPPETS = (
     "when it cannot detect one, it installs helpers for all supported Agents",
     "It does not create a personal memory library until the user chooses `memory new`",
     "memory",
+    "1. memory new - Create a memory library",
+    "2. memory connect - Connect this Agent to an existing memory library",
     "memory new",
     "memory connect",
     "memory backup",
@@ -119,9 +122,10 @@ README_REQUIRED_SNIPPETS = (
 START_PAGE_REQUIRED_SNIPPETS = (
     "JourneyMem Start",
     "Start JourneyMem without making your Agent inspect a repo.",
-    "1. Set up JourneyMem on this computer",
-    "2. Use JourneyMem in my current Agent",
-    "3. Back up or move my memory library",
+    "Start with the JourneyMem menu.",
+    "1. memory new - Create a memory library",
+    "2. memory connect - Connect this Agent to an existing memory library",
+    "Other command:",
     "Click a copy button when you need to start from an Agent message.",
     "Copy Codex prompt",
     "Copy TRAE Work prompt",
@@ -145,11 +149,14 @@ START_PAGE_REQUIRED_SNIPPETS = (
 AGENTS_REQUIRED_SNIPPETS = (
     "# JourneyMem Agent Instructions",
     "install source fallback, not a generic codebase task",
+    "If the user says exactly `memory`, `$journeymem`, `/memory`, or asks to use JourneyMem",
+    "do not read files, inspect folders, or explain existing memory contents",
     "do not summarize the repository structure",
     "install or activate JourneyMem first",
     "I can help you use JourneyMem.",
     "`memory new` - Create a new memory library",
     "`memory connect` - Connect this Agent to an existing memory library",
+    "Keep the command labels exactly as `memory new`, `memory connect`, and `memory backup`; do not translate or paraphrase them.",
     "Do not start `memory new` until the user chooses create/new.",
     "Do not ask \"What should Agents call you?\" before that choice.",
     "Do not add tool mode limitations, execution caveats, or other extra notes to the first response.",
@@ -201,7 +208,7 @@ DOC_REQUIRED_SNIPPETS = (
             "For raw transcript folders:",
             "codex-github-fallback-1.txt",
             "trae-start-page-1.txt",
-            "prompt files are intentionally one line",
+            "prompt files intentionally imitate realistic user messages",
             "TRAE Work clone/inspect behavior count = 0.",
             "Folder-path prompt on valid default = 0.",
         ),
@@ -251,6 +258,28 @@ def main() -> int:
         for term in README_FIRST_SCREEN_BLOCKED_TERMS:
             if term in first_screen:
                 findings.append(f"README.md first screen uses internal term: {term}")
+        menu_index = readme_text.find("What do you want to do?")
+        if menu_index == -1:
+            findings.append("README.md missing first-use menu")
+        else:
+            before_menu = readme_text[:menu_index]
+            for blocked_command in ("git clone ", "curl -fsSL", "./install.sh"):
+                if blocked_command in before_menu:
+                    findings.append(f"README.md promotes {blocked_command.strip()} before first-use menu")
+            first_command_positions = [
+                index
+                for index in (
+                    readme_text.find("git clone "),
+                    readme_text.find("curl -fsSL"),
+                    readme_text.find("./install.sh"),
+                )
+                if index != -1
+            ]
+            first_blocked_command = min(first_command_positions) if first_command_positions else len(readme_text)
+            for snippet in ("1. memory new - Create a memory library", "2. memory connect - Connect this Agent to an existing memory library"):
+                snippet_index = readme_text.find(snippet)
+                if snippet_index == -1 or snippet_index > first_blocked_command:
+                    findings.append(f"README.md first-use option appears after install/clone command: {snippet}")
         before_fallback = readme_text.split("Manual terminal fallback only:", 1)[0]
         if "./scripts/memory new" in before_fallback:
             findings.append("README.md promotes ./scripts/memory new before fallback")
@@ -270,6 +299,12 @@ def main() -> int:
         for term in README_FIRST_SCREEN_BLOCKED_TERMS:
             if term in first_screen:
                 findings.append(f"{rel} first screen uses internal term: {term}")
+        for snippet in ("1. memory new - create a memory library", "2. memory connect - connect this agent to an existing memory library"):
+            if snippet not in first_screen:
+                findings.append(f"{rel} first screen missing first-use option: {snippet}")
+        for blocked_command in ("git clone ", "curl -fsSL", "./install.sh"):
+            if blocked_command in first_screen:
+                findings.append(f"{rel} first screen promotes install/clone command: {blocked_command.strip()}")
     for rel in AGENT_INSTRUCTION_FILES:
         agents_file = ROOT / rel
         if not agents_file.exists():

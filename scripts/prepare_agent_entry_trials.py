@@ -41,23 +41,20 @@ python3 scripts/prd_acceptance_check.py \\
 The expected first response is a quiet two-choice JourneyMem menu with `memory new` and `memory connect`.
 Cursor transcripts are optional and not required for the PRD gate.
 
-Prompts are intentionally one line so Agent input boxes do not split the instruction into partial messages.
+Prompt files intentionally imitate realistic user messages. They must not tell the Agent "do not clone", "do not inspect", or "reply exactly"; the scorer verifies behavior from the first response.
 """
 
 
-MENU = "What do you want to do? 1. memory new - Create a memory library 2. memory connect - Connect this Agent to an existing memory library"
-
-
 PROMPTS = {
-    "valid-default": "You are testing JourneyMem first-run behavior. Treat the user command as `memory`. Do not use tools, browse folders, inspect files, summarize the repository structure, run `memory new`, run `memory connect`, or ask for a memory library folder path. Reply exactly with this menu and no other text: {menu}",
-    "skill-trigger": "You are testing JourneyMem skill-trigger behavior. Treat the user command as `$journeymem`. Do not use tools, browse folders, inspect files, summarize the repository structure, run `memory new`, run `memory connect`, or ask for a memory library folder path. Reply exactly with this menu and no other text: {menu}",
-    "start-page": "JourneyMem Start Page instruction: show the first-use menu before doing anything else. Do not clone, inspect files, summarize the repo, run commands, or ask for a folder path. Reply with only: {menu}",
-    "github-fallback": "JourneyMem install source: https://github.com/ivorywanj/agent-memory-starter-kit. This is not a codebase task. Do not clone, inspect files, summarize the repo, run commands, or ask what to do with this repo. Reply with only: {menu}",
+    "valid-default": "memory",
+    "skill-trigger": "$journeymem",
+    "start-page": "I want to use JourneyMem from this Start Page: https://ivorywanj.github.io/agent-memory-starter-kit/",
+    "github-fallback": "I want to use JourneyMem. Here is the repo: https://github.com/ivorywanj/agent-memory-starter-kit",
 }
 
 
 def prompt_text(key: str) -> str:
-    return PROMPTS[key].format(menu=MENU)
+    return PROMPTS[key]
 
 
 def write_pack(output: Path, force: bool) -> None:
