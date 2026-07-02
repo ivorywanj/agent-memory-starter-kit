@@ -10,7 +10,19 @@ If the user says exactly `memory`, `$journeymem`, `/memory`, or asks to use Jour
 
 If the user gives `https://github.com/ivorywanj/agent-memory-starter-kit`, do not summarize the repository structure and do not ask a generic project question like "what do you want to do with this project?"
 
-If possible, install or activate JourneyMem first. If the repository is already cloned, use the local installer/helper instead of exploring the repo.
+If possible, install or activate JourneyMem first. If `memory` is unavailable, run the hosted installer:
+
+```bash
+curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash
+```
+
+If the user chooses connect/existing and `memory connect` is not on PATH, run:
+
+```bash
+~/.local/bin/memory connect
+```
+
+The connect command checks `~/.journeymem/registry.json` and the default JourneyMem library path before asking for a folder. If the repository is already cloned, use the local installer/helper instead of exploring the repo.
 
 Instead, show this JourneyMem first-use choice:
 

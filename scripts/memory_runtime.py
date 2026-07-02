@@ -96,6 +96,10 @@ CODEX_PLUGIN_VERSION = "0.1.1"
 CODEX_CONFIG_BEGIN = "# BEGIN JourneyMem plugin"
 CODEX_CONFIG_END = "# END JourneyMem plugin"
 CODEX_COMMANDS = ("memory", "memory-new", "memory-connect", "memory-backup")
+TRAE_NATIVE_MEMORY_BEGIN = "<!-- BEGIN JOURNEYMEM NATIVE MEMORY BRIDGE -->"
+TRAE_NATIVE_MEMORY_END = "<!-- END JOURNEYMEM NATIVE MEMORY BRIDGE -->"
+TRAE_NATIVE_USER_MAX_CHARS = 1800
+TRAE_NATIVE_MEMORY_MAX_CHARS = 900
 AGENT_LABELS = {
     "codex": "Codex",
     "claude": "Claude Code",
@@ -542,6 +546,70 @@ def agent_connection_text(root: Path, agent: str) -> str:
     root_text = str(root)
     memory_cmd = shlex.quote(str(memory_script()))
     root_arg = shlex.quote(root_text)
+    if agent == "trae":
+        return f"""---
+alwaysApply: true
+description: Always load JourneyMem before user profile, preferences, project context, prior decisions, memory, recall, remember, improve, forget, 你怎么称呼我, 怎么称呼我, 你记得我是谁吗, what should I call you, what do you remember about me
+---
+
+# JourneyMem Connection
+
+This TRAE Work project is connected to this shared memory library:
+
+```text
+{root_text}
+```
+
+## New Conversation Rule
+
+This rule must be active in every new TRAE Work conversation in this project.
+
+Before answering questions about the user, their name, preferences, projects, long-term memory, prior decisions, or corrections, read the startup path below or run the recall command. This includes natural user questions such as:
+
+- `你怎么称呼我`
+- `你记得我是谁吗`
+- `what should I call you`
+- `what do you remember about me`
+
+If the startup files are not loaded yet, load them before answering. Do not say you do not know until those files were checked.
+
+This connection file alone is not the memory. For user profile or naming questions, a complete answer requires reading `{root_text}/memory/hot/USER.md` at minimum, and `{root_text}/memory/hot/MEMORY.md` when project or system memory may matter.
+
+Read first:
+
+```text
+{root_text}/AGENTS.md
+-> {root_text}/ONBOARDING.md
+-> {root_text}/memory/hot/USER.md
+-> {root_text}/memory/hot/MEMORY.md
+-> task-specific authoritative files only when needed
+```
+
+This file is a pointer only. Do not copy user profile, project facts, hot memory, observed memory, history, or audit records into this workspace file.
+
+Authority:
+
+- Markdown files in the memory library are the final record.
+- Hot memory is only a startup summary.
+- Platform memory and chat history are recall/evidence only.
+- Conflicts are resolved by checking the authoritative Markdown files.
+- New durable memory must go through `remember -> recall -> improve -> forget`.
+
+Useful commands:
+
+```bash
+{memory_cmd} --root {root_arg} recall --query "<query>" --context-only
+{memory_cmd} --root {root_arg} remember --session-id "<session>" --text "<explicit user correction>"
+{memory_cmd} --root {root_arg} improve --session-id "<session>"
+{memory_cmd} --root {root_arg} forget --instruction "<user correction>"
+```
+
+Safety:
+
+- Never store or print secrets, API keys, tokens, webhook URLs, database URLs, private keys, raw sessions, customer data, account data, cookies, or passwords.
+- Do not load every file by default.
+- Do not read project folders unless the task specifically requires the relevant source files.
+"""
     return f"""# JourneyMem Connection
 
 This {label} workspace uses this shared memory library:
@@ -587,6 +655,71 @@ Safety:
 """
 
 
+def bounded_file_excerpt(path: Path, max_chars: int) -> str:
+    if not path.exists():
+        return f"(missing: {path})"
+    text = path.read_text(encoding="utf-8", errors="replace").strip()
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars].rstrip() + "\n\n[truncated by JourneyMem native bridge]"
+
+
+def trae_native_memory_target(home: Path | None = None) -> Path:
+    base = home.expanduser() if home is not None else Path.home()
+    return base / ".trae-cn/memory/user_profile.md"
+
+
+def trae_native_memory_text(root: Path) -> str:
+    root_text = str(root)
+    user_path = root / "memory/hot/USER.md"
+    memory_path = root / "memory/hot/MEMORY.md"
+    user_excerpt = bounded_file_excerpt(user_path, TRAE_NATIVE_USER_MAX_CHARS)
+    memory_excerpt = bounded_file_excerpt(memory_path, TRAE_NATIVE_MEMORY_MAX_CHARS)
+    return f"""# JourneyMem Native Memory Bridge
+
+This TRAE native memory file is connected to this JourneyMem memory library:
+
+```text
+{root_text}
+```
+
+Use this bridge in every new TRAE conversation before answering user profile, naming, preference, project-context, prior-decision, or memory questions.
+
+Authority:
+
+- This block is a bounded startup cache plus pointer, not the final source of truth.
+- The authoritative memory files remain in the JourneyMem library.
+- If a detail is missing, stale, or disputed, read the JourneyMem files under the path above before answering.
+- Never store or print secrets, API keys, tokens, webhook URLs, database URLs, private keys, raw sessions, customer data, account data, cookies, or passwords.
+
+## Startup Cache: USER.md
+
+Source: `{user_path}`
+
+```markdown
+{user_excerpt}
+```
+
+## Startup Cache: MEMORY.md
+
+Source: `{memory_path}`
+
+```markdown
+{memory_excerpt}
+```
+"""
+
+
+def upsert_marked_block(existing: str, content: str, begin: str, end: str) -> str:
+    block = begin + "\n" + content.rstrip() + "\n" + end
+    if begin in existing and end in existing:
+        pattern = re.compile(re.escape(begin) + r".*?" + re.escape(end), re.S)
+        return pattern.sub(block, existing)
+    if existing.strip():
+        return existing.rstrip() + "\n\n" + block + "\n"
+    return block + "\n"
+
+
 def command_helper_text(root: Path) -> str:
     memory_cmd = shlex.quote(str(memory_script()))
     root_arg = shlex.quote(str(root))
@@ -622,7 +755,10 @@ GitHub URL install-source fallback:
 
 - Treat the JourneyMem GitHub URL as an install source, not as a generic codebase task.
 - If the user gives `https://github.com/ivorywanj/agent-memory-starter-kit`, install or activate the JourneyMem skill/helper first when possible.
+- If the `memory` command is unavailable, run `curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash`; then use `memory` or `~/.local/bin/memory`.
+- If the user chooses connect/existing and `memory connect` is unavailable, run `~/.local/bin/memory connect`.
 - Do not clone, inspect folder structure, summarize scripts, or ask "what do you want to do with this repo?" before install/menu.
+- Do not use `git clone` as the visible setup step.
 - If the environment has already cloned the repo, do not explore it. Use its installer/helper and show the JourneyMem menu.
 - If the user only asks you to clone this repo or run `git clone ...` and `cd agent-memory-starter-kit`, do not infer that they want `memory new`.
 - After install, activation, clone, or cd, stop and ask the two-choice first-use question: create a new memory library or connect this Agent to an existing memory library.
@@ -688,7 +824,7 @@ Fallback if `memory` is not on PATH:
 ```bash
 {memory_cmd}
 {memory_cmd} new
-{memory_cmd} --root {root_arg} connect
+{memory_cmd} connect
 {memory_cmd} --root {root_arg} backup
 ```
 
@@ -738,7 +874,7 @@ Route the request exactly:
 
 - Empty arguments: run `{memory_cmd}`.
 - `new`: run `{memory_cmd} new`.
-- `connect`: run `{memory_cmd} --root {root_arg} connect`.
+- `connect`: run `{memory_cmd} connect`.
 - `backup`: run `{memory_cmd} --root {root_arg} backup`.
 
 If arguments are unclear, show the two first-use choices (`memory new` and `memory connect`) and mention `memory backup` as a separate available command. Do not invent another command.
@@ -747,7 +883,7 @@ Follow the response style rules in the JourneyMem skill/helper text. Do not expo
 
     command_map = {
         "memory-new": f"{memory_cmd} new",
-        "memory-connect": f"{memory_cmd} --root {root_arg} connect",
+        "memory-connect": f"{memory_cmd} connect",
         "memory-backup": f"{memory_cmd} --root {root_arg} backup",
     }
     descriptions = {
@@ -831,7 +967,7 @@ def claude_command_text(root: Path, command: str) -> str:
     command_map = {
         "memory": f"{memory_cmd}",
         "memory-new": f"{memory_cmd} new",
-        "memory-connect": f"{memory_cmd} --root {root_arg} connect",
+        "memory-connect": f"{memory_cmd} connect",
         "memory-backup": f"{memory_cmd} --root {root_arg} backup",
     }
     display = "/" + command.replace("-", " ")
@@ -864,7 +1000,12 @@ alwaysApply: true
 
 
 def trae_rule_text(root: Path) -> str:
-    return f"""# JourneyMem TRAE Work Commands
+    return f"""---
+alwaysApply: true
+description: JourneyMem setup commands, first-use menu, memory new, memory connect, memory backup, $journeymem, /memory, agent memory starter kit install source
+---
+
+# JourneyMem TRAE Work Commands
 
 Use this file when the user says `memory`, `memory new`, `memory connect`, or `memory backup`.
 
@@ -884,7 +1025,7 @@ Other command:
 - memory backup - Back up a memory library
 ```
 
-Treat the JourneyMem GitHub repo URL as an install source, not as a codebase task. Do not clone, inspect, or summarize the repo before install/menu. Start from the command flow below.
+Treat the JourneyMem GitHub repo URL as an install source, not as a codebase task. Do not clone, inspect, or summarize the repo before install/menu. If `memory` is unavailable, run `curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash`; for connect/existing, run `memory connect` or `~/.local/bin/memory connect` before asking for a folder. Start from the command flow below.
 
 {command_helper_text(root)}
 """
@@ -1537,7 +1678,12 @@ def command_connect(args: argparse.Namespace) -> int:
         register_library(home, root, "default" if root == default_library_root(home).resolve() else root.name)
     target = bridge_target_for(agent, args.workspace, args.target, root)
     content = agent_connection_text(root, agent)
-    findings = guard_text(root, content + "\n" + str(target))
+    trae_native_target = trae_native_memory_target(home) if agent == "trae" else None
+    trae_native_content = trae_native_memory_text(root) if agent == "trae" else None
+    guard_payload = content + "\n" + str(target)
+    if trae_native_target is not None and trae_native_content is not None:
+        guard_payload += "\n" + trae_native_content + "\n" + str(trae_native_target)
+    findings = guard_text(root, guard_payload)
     if findings:
         print(f"connect_blocked: {findings[0].kind}")
         return 1
@@ -1563,6 +1709,16 @@ def command_connect(args: argparse.Namespace) -> int:
     else:
         target.write_text(content, encoding="utf-8")
         mode = "overwritten" if args.force else "created"
+    if trae_native_target is not None and trae_native_content is not None:
+        trae_native_target.parent.mkdir(parents=True, exist_ok=True)
+        existing_native = trae_native_target.read_text(encoding="utf-8") if trae_native_target.exists() else ""
+        updated_native = upsert_marked_block(
+            existing_native,
+            trae_native_content,
+            TRAE_NATIVE_MEMORY_BEGIN,
+            TRAE_NATIVE_MEMORY_END,
+        )
+        trae_native_target.write_text(updated_native, encoding="utf-8")
     write_agent_registry(root, agent, target, mode)
     if restored:
         print("Memory library restored from backup")
@@ -1571,8 +1727,13 @@ def command_connect(args: argparse.Namespace) -> int:
     print("Current Agent connected")
     print(f"Agent: {AGENT_LABELS[agent]}")
     print(f"Connection file: {target}")
+    if trae_native_target is not None:
+        print(f"TRAE native memory bridge: {trae_native_target}")
     print(f"Memory library: {root}")
-    print("No profile, project facts, or long-term memory were copied into this workspace.")
+    if agent == "trae":
+        print("Connection file is pointer-only; TRAE native memory stores a bounded startup bridge for fresh conversations.")
+    else:
+        print("No profile, project facts, or long-term memory were copied into this workspace.")
     return 0
 
 
