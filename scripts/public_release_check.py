@@ -72,7 +72,12 @@ REQUIRED_FILES = (
 README_REQUIRED_SNIPPETS = (
     "A local memory library for AI agents.",
     "## Quickstart",
-    "Start with the JourneyMem menu:",
+    "Install JourneyMem once:",
+    "Run it:",
+    "Choose what you want to do:",
+    "Use `memory new` if this is your first JourneyMem library.",
+    "Use `memory connect` if this Agent should use an existing memory library.",
+    "For connect fallback when PATH is not loaded:",
     "https://ivorywanj.github.io/agent-memory-starter-kit/",
     "The Start Page has copy buttons for Agent-specific prompts.",
     "Users do not write prompts by hand.",
@@ -148,6 +153,15 @@ START_PAGE_REQUIRED_SNIPPETS = (
     "1. memory new - Create a memory library",
     "2. memory connect - Connect this Agent to an existing memory library",
     "memory backup",
+)
+INSTALLER_REQUIRED_SNIPPETS = (
+    "JourneyMem installed",
+    "Start now:",
+    "What do you want to do?",
+    "1. memory new - Create a memory library",
+    "2. memory connect - Connect this Agent to an existing memory library",
+    "Other command:",
+    "- memory backup - Back up a memory library",
 )
 AGENTS_REQUIRED_SNIPPETS = (
     "# JourneyMem Agent Instructions",
@@ -286,14 +300,22 @@ def main() -> int:
             findings.append("README.md missing first-use menu")
         else:
             before_menu = readme_text[:menu_index]
-            for blocked_command in ("git clone ", "curl -fsSL", "./install.sh"):
+            for blocked_command in ("git clone ", "./install.sh"):
                 if blocked_command in before_menu:
                     findings.append(f"README.md promotes {blocked_command.strip()} before first-use menu")
+            installer = "curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash"
+            installer_index = readme_text.find(installer)
+            if installer_index == -1:
+                findings.append("README.md missing hosted installer in Quickstart")
+            elif installer_index > menu_index:
+                findings.append("README.md Quickstart menu appears before hosted installer")
+            first_memory_index = readme_text.find("\nmemory\n")
+            if first_memory_index != -1 and installer_index != -1 and first_memory_index < installer_index:
+                findings.append("README.md starts with memory before install command")
             first_command_positions = [
                 index
                 for index in (
                     readme_text.find("git clone "),
-                    readme_text.find("curl -fsSL"),
                     readme_text.find("./install.sh"),
                 )
                 if index != -1
@@ -327,6 +349,15 @@ def main() -> int:
         for blocked_command in ("git clone ", "curl -fsSL", "./install.sh"):
             if blocked_command in first_screen:
                 findings.append(f"{rel} first screen promotes install/clone command: {blocked_command.strip()}")
+    for rel in ("install.sh", "docs/install.sh"):
+        installer_file = ROOT / rel
+        if not installer_file.exists():
+            findings.append(f"missing installer: {rel}")
+            continue
+        installer_text = installer_file.read_text(encoding="utf-8", errors="replace")
+        for snippet in INSTALLER_REQUIRED_SNIPPETS:
+            if snippet not in installer_text:
+                findings.append(f"{rel} missing installer completion snippet: {snippet}")
     for rel in AGENT_INSTRUCTION_FILES:
         agents_file = ROOT / rel
         if not agents_file.exists():
