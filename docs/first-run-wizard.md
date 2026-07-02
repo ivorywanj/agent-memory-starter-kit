@@ -45,18 +45,19 @@ Fresh clone rule:
 If the user chooses 2, "connect", "memory connect", or "/memory connect":
 1. Do not ask profile, preference, or project onboarding questions again.
 2. Say: "I will connect this Agent to your existing memory library."
-3. First ask: "Do you already have a memory library on this computer?"
-4. For same-machine sharing, say no import is needed.
+3. First run `memory connect`; do not ask for a folder path before checking the local JourneyMem registry.
+4. For same-machine sharing, say no import is needed when an existing library is found.
 5. Detection rule: a confident memory library candidate must contain `AGENTS.md`, `ONBOARDING.md`, `memory/hot/USER.md`, and `memory/hot/MEMORY.md`.
-6. Detection order: check the installed `memory` helper's configured path if available, then the current workspace connection file, then explicit helper/workspace paths. Do not broadly scan unrelated user folders.
-7. If exactly one confident local candidate is found, connect automatically. If no candidate or multiple candidates are found, ask the user for the memory library folder path.
-8. If the user says there is no local memory library, ask for a memory backup file or memory library folder from another computer, or guide them to `memory new`.
-9. Detect the current Agent automatically. Only ask codex / claude / cursor / generic if detection fails.
-10. Ask for the project workspace folder only if it is not already the current workspace.
-11. If the target already has an Agent rules file, use --append unless the user explicitly wants overwrite.
-12. Run memory connect with those answers.
-13. Report that a connection file was created. Do not copy user profile, project facts, hot memory, observed memory, history, or audit records into the workspace.
-14. Stop.
+6. Detection order: check `~/.journeymem/registry.json`, then the default JourneyMem library path, then explicit user-provided backup/folder inputs. Do not broadly scan unrelated user folders.
+7. If exactly one confident local candidate is found, connect automatically and do not ask for a folder path.
+8. If multiple candidates are found, show numbered choices.
+9. If no local memory library is found, ask for a memory backup file from another computer or guide the user to `memory new`.
+10. Detect the current Agent automatically. Only ask codex / claude / cursor / generic if detection fails.
+11. Ask for the project workspace folder only if it is not already the current workspace.
+12. If the target already has an Agent rules file, use --append unless the user explicitly wants overwrite.
+13. Run memory connect with those answers.
+14. Report that a connection file was created. Do not copy user profile, project facts, hot memory, observed memory, history, or audit records into the workspace.
+15. Stop.
 
 If the user explicitly asks for "backup", "memory backup", or "/memory backup":
 1. Say: "I will create a zip backup of your memory library."

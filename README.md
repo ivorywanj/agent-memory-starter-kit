@@ -2,7 +2,7 @@
 
 A local memory library for AI agents.
 
-JourneyMem helps Codex, Claude Code, Cursor, and other Agents that can read project files learn a new user quickly, connect several Agents to the same memory, and keep everything in plain files. Users do not edit memory files by hand; the Agent asks guided questions and runs the setup steps.
+JourneyMem helps Codex, Claude Code, Cursor, TRAE Work, and other Agents that can read project files learn a new user quickly, connect several Agents to the same memory, and keep everything in plain files. Users do not edit memory files by hand; the Agent asks guided questions and runs the setup steps.
 
 ## Quickstart
 
@@ -34,6 +34,14 @@ After the Agent opens the repo, it can install the Agent shortcuts into a projec
 ```bash
 scripts/memory install --agent all --workspace ./your-project
 ```
+
+Terminal install option:
+
+```bash
+./install.sh
+```
+
+The installer creates `~/.journeymem/`, installs the `memory` command, and writes Agent helper files. It detects the current Agent when possible; when it cannot detect one, it installs helpers for all supported Agents. It does not create a personal memory library until the user chooses `memory new`, and it does not import workspace files.
 
 Open Codex, TRAE Work, Claude Code, Cursor, or another Agent that can read project files.
 
@@ -67,7 +75,7 @@ Backup is a separate command:
 memory backup
 ```
 
-The installer writes a real `memory` shell command into `~/.local/bin` so Agents can run `memory`, `memory new`, `memory connect`, and `memory backup` from any project. It also writes helper files for Codex, Claude Code, Cursor, and generic file-reading Agents.
+The installer writes a real `memory` shell command into `~/.local/bin` so Agents can run `memory`, `memory new`, `memory connect`, and `memory backup` from any project. It also detects the current Agent when possible and writes helper files for Codex, Claude Code, Cursor, TRAE Work, or generic file-reading Agents.
 
 If an Agent supports explicit skill references, use the generated local skill path:
 
@@ -97,7 +105,7 @@ Then use these troubleshooting commands only when the Agent prompt flow is not a
 
 For first-time setup, the Agent should not explain setup internals or ask where to store the files. It should ask one question at a time and only show the next useful question.
 
-For connecting another Agent, the Agent should already know which tool you are using. It only asks you to choose Codex, Claude Code, Cursor, or Generic if it cannot identify the current Agent.
+For connecting another Agent, the Agent should already know which tool you are using. It only asks you to choose Codex, Claude Code, Cursor, TRAE Work, or Generic if it cannot identify the current Agent.
 
 ## What It Creates
 
@@ -155,7 +163,7 @@ See `docs/productized-user-flow.md` for the user-flow design and measurable acce
 
 - `memory` shows exactly two first-use choices: create a new memory library or connect this Agent to an existing memory library.
 - A fresh clone followed by `cd agent-memory-starter-kit` does not trigger `memory new`; the Agent asks the two-choice first-use question first.
-- `scripts/memory install --agent all` writes a shared `memory` shell command plus Codex, Claude Code, Cursor, and generic command helpers.
+- `scripts/memory install --agent all` writes a shared `memory` shell command plus Codex, Claude Code, Cursor, TRAE Work, and generic command helpers.
 - Codex install writes a local plugin package and enables it in `~/.codex/config.toml`.
 - `memory new` asks no more than seven setup questions, plus an optional project-folder follow-up.
 - `memory connect` starts by asking whether a local memory library already exists, then connects by pointer without import when possible.
@@ -170,7 +178,7 @@ The command writes a small connection file into the target Agent workspace. It p
 
 For same-machine sharing, no import is needed. The Agent should not describe this as migration or copying.
 
-The Agent first asks: "Do you already have a memory library on this computer?" If yes, it only treats a folder as a confident match when it contains `AGENTS.md`, `ONBOARDING.md`, `memory/hot/USER.md`, and `memory/hot/MEMORY.md`. It should not broadly scan unrelated user folders. If no local memory library exists, provide a memory backup file, a memory library folder from another computer, or create a new memory library.
+The Agent first runs the local `memory connect` flow. It checks `~/.journeymem/registry.json` and the default JourneyMem library path before asking for any folder path. It only treats a folder as a confident match when it contains `AGENTS.md`, `ONBOARDING.md`, `memory/hot/USER.md`, and `memory/hot/MEMORY.md`. It should not broadly scan unrelated user folders. If no local memory library exists, provide a memory backup file from another computer or create a new memory library.
 
 Default connection targets:
 

@@ -17,7 +17,11 @@ SECRET_PATTERNS = (
     ("private_key", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")),
     ("webhook_url", re.compile("https://" + r"[^\s]*(?:webhook|hooks)[^\s]*", re.I)),
 )
-SECRET_PATTERN_EXEMPT_FILES = {"scripts/memory_guard.py", "scripts/public_release_check.py"}
+SECRET_PATTERN_EXEMPT_FILES = {
+    "scripts/memory_guard.py",
+    "scripts/public_release_check.py",
+    "scripts/save_agent_entry_transcript.py",
+}
 REQUIRED_FILES = (
     ".github/workflows/ci.yml",
     "AGENTS.md",
@@ -31,12 +35,22 @@ REQUIRED_FILES = (
     "SECURITY.md",
     "CONTRIBUTING.md",
     "CHANGELOG.md",
+    "install.sh",
     "scripts/memory",
     "scripts/memory_runtime.py",
     "scripts/memory_guard.py",
+    "scripts/memory_status.py",
+    "scripts/score_agent_entry_transcripts.py",
+    "scripts/prd_acceptance_check.py",
+    "scripts/prepare_agent_entry_trials.py",
+    "scripts/collect_codex_entry_transcript.py",
+    "scripts/collect_cursor_entry_transcript.py",
+    "scripts/agent_entry_readiness.py",
+    "scripts/save_agent_entry_transcript.py",
     "scripts/public_release_check.py",
     "tests/test_public_package.py",
     "templates/public/answers.example.json",
+    "templates/public/agent-entry-transcripts.example.jsonl",
     "docs/releases/v0.1.4.md",
     "docs/releases/v0.1.1.md",
     "docs/releases/v0.1.2.md",
@@ -48,6 +62,7 @@ REQUIRED_FILES = (
     "docs/workflows/memory-install.md",
     "docs/workflows/memory-connect.md",
     "docs/workflows/memory-backup.md",
+    "docs/workflows/agent-entry-transcripts.md",
     "docs/workflows/memory-share.md",
 )
 README_REQUIRED_SNIPPETS = (
@@ -58,6 +73,10 @@ README_REQUIRED_SNIPPETS = (
     "Do not paste only `git clone` and `cd agent-memory-starter-kit` into an Agent.",
     "Do not add setup analysis, repository summary, or mode/tooling notes.",
     "scripts/memory install --agent all --workspace ./your-project",
+    "./install.sh",
+    "detects the current Agent when possible",
+    "when it cannot detect one, it installs helpers for all supported Agents",
+    "It does not create a personal memory library until the user chooses `memory new`",
     "Type:",
     "memory",
     "memory new",
@@ -76,7 +95,7 @@ README_REQUIRED_SNIPPETS = (
     "Do you want to create a new memory library, or connect this Agent to an existing memory library?",
     "Fresh clone rule: after `git clone` and `cd agent-memory-starter-kit`, the Agent must ask this two-choice question.",
     "no import is needed",
-    "Do you already have a memory library on this computer?",
+    "checks `~/.journeymem/registry.json` and the default JourneyMem library path before asking for any folder path",
     "AGENTS.md`, `ONBOARDING.md`, `memory/hot/USER.md`, and `memory/hot/MEMORY.md",
     "use the default backup folder",
     "Backup does not connect, import, restore, switch, or initialize",
@@ -101,6 +120,55 @@ AGENTS_REQUIRED_SNIPPETS = (
     "Do not start `memory new` until the user chooses create/new.",
     "Do not ask \"What should Agents call you?\" before that choice.",
     "Do not add tool mode limitations, execution caveats, or other extra notes to the first response.",
+)
+DOC_REQUIRED_SNIPPETS = (
+    (
+        "docs/productized-user-flow.md",
+        (
+            "Connect checks the local registry/default path before asking for any folder path",
+            "Backup is available separately, not as a main first-use branch",
+        ),
+    ),
+    (
+        "docs/first-run-wizard.md",
+        (
+            "Do not show your internal analysis",
+            "Do not run `memory new` until the user chooses option 1.",
+            "If exactly one confident local candidate is found, connect automatically and do not ask for a folder path.",
+        ),
+    ),
+    (
+        "docs/workflows/memory-new.md",
+        (
+            "The first user-facing response contains exactly one setup question",
+            "Do not show internal analysis, setup strategy, repository status",
+        ),
+    ),
+    (
+        "docs/workflows/memory-connect.md",
+        (
+            "Check `~/.journeymem/registry.json` for an existing default memory library.",
+            "The first response does not ask for a folder path when the registry has one valid default library.",
+        ),
+    ),
+    (
+        "docs/workflows/agent-entry-transcripts.md",
+        (
+            "python3 scripts/score_agent_entry_transcripts.py",
+            "python3 scripts/prd_acceptance_check.py",
+            "python3 scripts/prepare_agent_entry_trials.py",
+            "python3 scripts/collect_codex_entry_transcript.py",
+            "python3 scripts/collect_cursor_entry_transcript.py",
+            "python3 scripts/agent_entry_readiness.py",
+            "python3 scripts/save_agent_entry_transcript.py",
+            "--run-local-checks",
+            "--require-agents codex,trae",
+            "--require-trae-trials 3",
+            "For raw transcript folders:",
+            "TRAE Work clone/inspect behavior count = 0.",
+            "Folder-path prompt on valid default = 0.",
+        ),
+    ),
 )
 AGENT_INSTRUCTION_FILES = (
     "AGENTS.md",
@@ -159,6 +227,15 @@ def main() -> int:
         agents_text = agents_file.read_text(encoding="utf-8", errors="replace")
         for snippet in AGENTS_REQUIRED_SNIPPETS:
             if snippet not in agents_text:
+                findings.append(f"{rel} missing snippet: {snippet}")
+    for rel, snippets in DOC_REQUIRED_SNIPPETS:
+        doc_file = ROOT / rel
+        if not doc_file.exists():
+            findings.append(f"missing required doc: {rel}")
+            continue
+        doc_text = doc_file.read_text(encoding="utf-8", errors="replace")
+        for snippet in snippets:
+            if snippet not in doc_text:
                 findings.append(f"{rel} missing snippet: {snippet}")
     for path in iter_text_files():
         rel = path.relative_to(ROOT)

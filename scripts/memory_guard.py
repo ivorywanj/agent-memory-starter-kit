@@ -192,10 +192,11 @@ def print_text(findings: list[Finding]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Scan memory runtime files for unsafe content.")
     parser.add_argument("paths", nargs="*", help="Optional paths to scan. Defaults to runtime docs.")
+    parser.add_argument("--root", type=Path, default=None, help="Memory library root to scan. Defaults to this repo.")
     parser.add_argument("--format", choices=["text", "json"], default="text")
     args = parser.parse_args()
 
-    root = repo_root()
+    root = args.root.expanduser().resolve() if args.root else repo_root()
     paths = args.paths or DEFAULT_PATHS
     findings = scan(paths, root)
 

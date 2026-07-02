@@ -29,7 +29,7 @@ Best-effort alias command files such as `/memory-new`, `/memory-connect`, and `/
 ## Pass Criteria
 
 - Shared `memory` shell shortcut is executable.
-- Codex local plugin package, Claude Code command files, Cursor rule, and generic helper files are written.
+- Codex local plugin package, Claude Code command files, Cursor rule, TRAE Work rule, and generic helper files are written.
 - Duplicate install blocks unless `--force` is used.
 - Helper files include `memory`, `memory new`, `memory connect`, and `memory backup`.
 - Helper files do not copy profile details, project facts, history, or secrets.

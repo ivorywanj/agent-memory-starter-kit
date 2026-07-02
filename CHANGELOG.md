@@ -3,7 +3,7 @@
 ## Unreleased
 
 - Promoted `memory` to the stable cross-Agent entry.
-- Added `scripts/memory install` to install Agent shortcut helpers for Codex, Claude Code, Cursor, and generic file-reading Agents.
+- Added `scripts/memory install` to install Agent shortcut helpers for Codex, Claude Code, Cursor, TRAE Work, and generic file-reading Agents.
 - Added public fixture tests for shortcut helper installation and duplicate-install protection.
 
 ## v0.1.4
@@ -15,7 +15,7 @@
 
 ## v0.1.3
 
-- Added `memory share` for pointer-only bridge files across Codex, Claude Code, Cursor, and generic Agents.
+- Added `memory share` for pointer-only bridge files across Codex, Claude Code, Cursor, TRAE Work, and generic Agents.
 - Added public Agent sharing docs and `/memory-share` workflow.
 - Added tests proving bridges point to one shared runtime without copying user memory into Agent workspaces.
 

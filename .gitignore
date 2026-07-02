@@ -11,3 +11,4 @@ memory/runtime/
 memory/history/runtime/
 memory/hot/*.draft.md
 content/data/memory-benchmark/runs/
+agent-entry-trials/

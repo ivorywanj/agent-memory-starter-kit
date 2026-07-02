@@ -12,10 +12,11 @@ import shutil
 import os
 import subprocess
 import sys
+import tempfile
 import zipfile
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import memory_guard
 
@@ -85,9 +86,10 @@ AGENT_BRIDGE_TARGETS = {
     "codex": Path("AGENTS.md"),
     "claude": Path("CLAUDE.md"),
     "cursor": Path(".cursor/rules/journeymem.mdc"),
+    "trae": Path(".trae/rules/journeymem.md"),
     "generic": Path("JOURNEYMEM.md"),
 }
-AGENT_INSTALL_TARGETS = ("codex", "claude", "cursor", "generic")
+AGENT_INSTALL_TARGETS = ("codex", "claude", "cursor", "trae", "generic")
 CODEX_MARKETPLACE_NAME = "journeymem-local"
 CODEX_PLUGIN_NAME = "journeymem"
 CODEX_PLUGIN_VERSION = "0.1.1"
@@ -98,6 +100,7 @@ AGENT_LABELS = {
     "codex": "Codex",
     "claude": "Claude Code",
     "cursor": "Cursor",
+    "trae": "TRAE Work",
     "generic": "Generic Agent",
     "shell": "Shell",
 }
@@ -108,6 +111,13 @@ BACKUP_EXCLUDED_PREFIXES = (
     "content/data/memory-benchmark/runs",
 )
 BACKUP_EXCLUDED_SUFFIXES = {".sqlite", ".sqlite3", ".db", ".db-wal", ".db-shm"}
+REQUIRED_MEMORY_LIBRARY_FILES = (
+    "AGENTS.md",
+    "ONBOARDING.md",
+    "memory/hot/USER.md",
+    "memory/hot/MEMORY.md",
+)
+REGISTRY_VERSION = 1
 
 
 @dataclass
@@ -138,8 +148,112 @@ def memory_script() -> Path:
     return Path(__file__).resolve().with_name("memory")
 
 
+def journeymem_home(home: Path | None = None) -> Path:
+    if home is not None:
+        return home.expanduser() / ".journeymem"
+    configured = os.environ.get("JOURNEYMEM_HOME", "").strip()
+    if configured:
+        return Path(configured).expanduser()
+    return Path.home() / ".journeymem"
+
+
+def default_library_root(home: Path | None = None) -> Path:
+    return journeymem_home(home) / "libraries/default"
+
+
 def user_default_root() -> Path:
-    return Path.cwd() / "journeymem"
+    return default_library_root()
+
+
+def registry_path(home: Path | None = None) -> Path:
+    return journeymem_home(home) / "registry.json"
+
+
+def is_memory_library(root: Path) -> bool:
+    return all((root / rel).is_file() for rel in REQUIRED_MEMORY_LIBRARY_FILES)
+
+
+def load_registry(home: Path | None = None) -> dict:
+    path = registry_path(home)
+    if not path.exists():
+        return {"version": REGISTRY_VERSION, "default_library": None, "libraries": [], "agents": {}}
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {"version": REGISTRY_VERSION, "default_library": None, "libraries": [], "agents": {}}
+    if not isinstance(loaded, dict):
+        return {"version": REGISTRY_VERSION, "default_library": None, "libraries": [], "agents": {}}
+    loaded.setdefault("version", REGISTRY_VERSION)
+    loaded.setdefault("default_library", None)
+    loaded.setdefault("libraries", [])
+    loaded.setdefault("agents", {})
+    return loaded
+
+
+def save_registry(home: Path | None, registry: dict) -> None:
+    path = registry_path(home)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(registry, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def register_library(home: Path | None, root: Path, name: str = "default") -> None:
+    registry = load_registry(home)
+    root_text = str(root.expanduser().resolve())
+    now = now_iso()
+    libraries = [item for item in registry.get("libraries", []) if item.get("path") != root_text and item.get("name") != name]
+    libraries.append({"name": name, "path": root_text, "created_at": now, "last_used_at": now})
+    registry["version"] = REGISTRY_VERSION
+    registry["default_library"] = root_text if name == "default" or not registry.get("default_library") else registry["default_library"]
+    registry["libraries"] = libraries
+    registry.setdefault("agents", {})
+    save_registry(home, registry)
+
+
+def valid_registry_libraries(home: Path | None = None) -> list[dict]:
+    registry = load_registry(home)
+    items: list[dict] = []
+    seen: set[str] = set()
+    for item in registry.get("libraries", []):
+        path_text = item.get("path")
+        if not path_text:
+            continue
+        root = Path(path_text).expanduser()
+        key = str(root.resolve()) if root.exists() else str(root)
+        if key in seen or not is_memory_library(root):
+            continue
+        seen.add(key)
+        items.append({"name": item.get("name") or root.name, "path": root})
+    default_text = registry.get("default_library")
+    if default_text:
+        default = Path(default_text).expanduser()
+        key = str(default.resolve()) if default.exists() else str(default)
+        if key not in seen and is_memory_library(default):
+            seen.add(key)
+            items.insert(0, {"name": "default", "path": default})
+    fallback = default_library_root(home)
+    key = str(fallback.resolve()) if fallback.exists() else str(fallback)
+    if key not in seen and is_memory_library(fallback):
+        items.insert(0, {"name": "default", "path": fallback})
+    return items
+
+
+def choose_registry_library(home: Path | None, library: str | None, library_index: int | None) -> tuple[Path | None, str, list[dict]]:
+    candidates = valid_registry_libraries(home)
+    if library:
+        requested = Path(library).expanduser()
+        for item in candidates:
+            if item["name"] == library or item["path"] == requested or str(item["path"]) == library:
+                return item["path"], "selected", candidates
+        return None, "missing_requested", candidates
+    if library_index is not None:
+        if 1 <= library_index <= len(candidates):
+            return candidates[library_index - 1]["path"], "selected", candidates
+        return None, "invalid_index", candidates
+    if len(candidates) == 1:
+        return candidates[0]["path"], "found", candidates
+    if len(candidates) > 1:
+        return None, "multiple", candidates
+    return None, "none", candidates
 
 
 def runtime_root(root: Path) -> Path:
@@ -338,6 +452,8 @@ def detect_agent() -> str | None:
         return "claude"
     if any("CURSOR" in key or "CURSOR" in value.upper() for key, value in env.items()):
         return "cursor"
+    if any("TRAE" in key or "TRAE" in value.upper() for key, value in env.items()):
+        return "trae"
     return None
 
 
@@ -496,12 +612,13 @@ For `memory new`:
 For `memory connect`:
 
 - Say this will connect the current Agent to an existing memory library.
-- First ask whether the user already has a memory library on this computer.
-- For same-machine sharing, say no import is needed.
+- First run `memory connect`; do not ask for a folder path before checking the local JourneyMem registry.
+- For same-machine sharing, say no import is needed when an existing library is found.
 - Detection rule: a confident memory library candidate must contain `AGENTS.md`, `ONBOARDING.md`, `memory/hot/USER.md`, and `memory/hot/MEMORY.md`.
-- Detection order: check the installed `memory` helper's configured path if available, then the current workspace connection file, then explicit helper/workspace paths. Do not broadly scan unrelated user folders.
-- If exactly one confident local candidate is found, connect automatically. If none or multiple are found, ask for the memory library folder path.
-- If the user does not have a local memory library, ask for a memory backup file or memory library folder from another computer, or guide them to `memory new`.
+- Detection order: check `~/.journeymem/registry.json`, then the default JourneyMem library path, then explicit user-provided backup/folder inputs. Do not broadly scan unrelated user folders.
+- If exactly one confident local candidate is found, connect automatically and do not ask for a folder path.
+- If multiple candidates are found, show numbered choices.
+- If no local memory library is found, ask for a memory backup file from another computer or guide the user to `memory new`.
 - Ask for only one missing input at a time.
 - Do not say the memory will be imported, migrated, or copied into this Agent workspace.
 - End with a short connection summary.
@@ -615,7 +732,7 @@ Run this command:
 Follow the response style rules in the JourneyMem skill/helper text:
 
 - `memory new`: ask exactly one question at a time and do not show internal setup steps.
-- `memory connect`: first ask whether the user already has a memory library on this computer; say same-machine sharing needs no import; do not describe migration or copying.
+- `memory connect`: first check the local JourneyMem registry/default path; if one valid local library is found, connect without asking for a folder path. If none is found, ask for a backup zip from another computer or guide `memory new`.
 - `memory backup`: say it creates a zip backup; ask where to save it and say the user can use the default backup folder; do not mix backup with connect, import, restore, switch, or initialization.
 
 Do not ask the user to hand-edit memory files. Do not store or print secrets.
@@ -688,7 +805,7 @@ Run:
 Follow the response style rules in the JourneyMem command helper:
 
 - `memory new`: ask exactly one question at a time and do not show internal setup steps.
-- `memory connect`: first ask whether the user already has a memory library on this computer; say same-machine sharing needs no import; do not describe migration or copying.
+- `memory connect`: first check the local JourneyMem registry/default path; if one valid local library is found, connect without asking for a folder path. If none is found, ask for a backup zip from another computer or guide `memory new`.
 - `memory backup`: say it creates a zip backup; ask where to save it and say the user can use the default backup folder; do not mix backup with connect, import, restore, switch, or initialization.
 
 Do not ask the user to hand-edit memory files. Do not store or print secrets.
@@ -700,6 +817,17 @@ def cursor_rule_text(root: Path) -> str:
 description: JourneyMem shortcuts
 alwaysApply: true
 ---
+
+{command_helper_text(root)}
+"""
+
+
+def trae_rule_text(root: Path) -> str:
+    return f"""# JourneyMem TRAE Work Commands
+
+Use this file when the user says `memory`, `memory new`, `memory connect`, or `memory backup`.
+
+Do not clone or inspect the JourneyMem GitHub repo when the user asks to use memory. Start from the command flow below.
 
 {command_helper_text(root)}
 """
@@ -851,6 +979,12 @@ def install_files_for(root: Path, agent: str, workspace: Path, home: Path) -> li
         ]
     if agent == "cursor":
         return [InstallFile(agent, workspace / ".cursor/rules/journeymem-commands.mdc", cursor_rule_text(root))]
+    if agent == "trae":
+        text = trae_rule_text(root)
+        return [
+            InstallFile(agent, workspace / ".trae/rules/journeymem-commands.md", text),
+            InstallFile(agent, workspace / "TRAE_MEMORY.md", text),
+        ]
     if agent == "generic":
         return [InstallFile(agent, workspace / "JOURNEYMEM_COMMANDS.md", generic_command_text(root))]
     raise ValueError(f"unsupported agent: {agent}")
@@ -860,7 +994,11 @@ def command_install(args: argparse.Namespace) -> int:
     root = args.root
     workspace = (args.workspace or Path.cwd()).expanduser().resolve()
     home = (args.home or Path.home()).expanduser().resolve()
-    agents = list(AGENT_INSTALL_TARGETS) if args.agent == "all" else [args.agent]
+    if args.agent == "auto":
+        detected = detect_agent()
+        agents = [detected] if detected in AGENT_INSTALL_TARGETS else list(AGENT_INSTALL_TARGETS)
+    else:
+        agents = list(AGENT_INSTALL_TARGETS) if args.agent == "all" else [args.agent]
     planned: list[InstallFile] = shared_install_files(root, home)
     for agent in agents:
         planned.extend(install_files_for(root, agent, workspace, home))
@@ -938,16 +1076,10 @@ def write_agent_registry(root: Path, agent: str, target: Path, mode: str) -> Non
 
 
 def guard_text(root: Path, text: str) -> list[memory_guard.Finding]:
-    probe = runtime_root(root) / ".guard-probe.md"
-    probe.parent.mkdir(parents=True, exist_ok=True)
-    probe.write_text(text, encoding="utf-8")
-    try:
+    with tempfile.TemporaryDirectory(prefix="journeymem-guard-") as tmp:
+        probe = Path(tmp) / ".guard-probe.md"
+        probe.write_text(text, encoding="utf-8")
         return memory_guard.scan_file(probe, root)
-    finally:
-        try:
-            probe.unlink()
-        except OSError:
-            pass
 
 
 def public_template_files(answers: dict) -> dict[str, str]:
@@ -1074,6 +1206,7 @@ Generate pointer-only bridge files for Agent workspaces:
 scripts/memory --root /path/to/this-runtime share --agent codex --workspace /path/to/project
 scripts/memory --root /path/to/this-runtime share --agent claude --workspace /path/to/project
 scripts/memory --root /path/to/this-runtime share --agent cursor --workspace /path/to/project
+scripts/memory --root /path/to/this-runtime share --agent trae --workspace /path/to/project
 ```
 
 Bridge files point Agents back to this runtime. They do not copy user profile, project facts, hot memory, history, or session cache.
@@ -1213,6 +1346,9 @@ def command_init(args: argparse.Namespace) -> int:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text, encoding="utf-8")
         overwritten.append(rel) if existed else created.append(rel)
+    home = getattr(args, "home", None)
+    if home is not None or root == default_library_root(home):
+        register_library(home, root, "default")
     print("Memory initialized")
     print("")
     print("Created:")
@@ -1244,7 +1380,7 @@ def command_start(args: argparse.Namespace) -> int:
         return 0
     if choice in {"1", "n", "new", "start"}:
         init_args = argparse.Namespace(
-            root=args.root,
+            root=args.root or default_library_root(args.home),
             answers=args.answers,
             name=args.name,
             language=args.language,
@@ -1255,6 +1391,7 @@ def command_start(args: argparse.Namespace) -> int:
             never_store=args.never_store,
             interactive=args.interactive,
             force=args.force,
+            home=args.home,
         )
         return command_init(init_args)
     if choice in {"2", "c", "connect", "share"}:
@@ -1266,10 +1403,16 @@ def command_start(args: argparse.Namespace) -> int:
             append=args.append,
             force=args.force,
             print_only=args.print_only,
+            home=args.home,
+            library=args.library,
+            library_index=args.library_index,
+            backup=args.backup,
         )
         return command_connect(connect_args)
     if choice in {"3", "b", "backup"}:
-        backup_args = argparse.Namespace(root=args.root, output=args.output, backup_dir=args.backup_dir)
+        default = default_library_root(args.home)
+        backup_root = args.root or (default if is_memory_library(default) else repo_root())
+        backup_args = argparse.Namespace(root=backup_root, output=args.output, backup_dir=args.backup_dir, home=args.home)
         return command_backup(backup_args)
     print("start_blocked: choose 1, 2, or 3")
     return 1
@@ -1294,9 +1437,46 @@ def command_connect(args: argparse.Namespace) -> int:
     agent = args.agent or detect_agent()
     if not agent:
         print("connect_needs_agent")
-        print("I could not identify the current Agent. Choose codex, claude, cursor, or generic.")
+        print("I could not identify the current Agent. Choose codex, claude, cursor, trae, or generic.")
         return 1
+    home = getattr(args, "home", None)
     root = args.root
+    restored = False
+    found_existing = False
+    if root is None:
+        backup = getattr(args, "backup", None)
+        if backup:
+            root, restore_status = restore_backup_zip(backup.expanduser(), home, force=args.force)
+            if root is None:
+                print(f"connect_blocked: {restore_status}")
+                return 1
+            restored = True
+        else:
+            root, status, candidates = choose_registry_library(home, getattr(args, "library", None), getattr(args, "library_index", None))
+            if root is None:
+                if status == "multiple":
+                    print("connect_needs_library_choice")
+                    print("Choose a memory library:")
+                    for index, item in enumerate(candidates, 1):
+                        print(f"{index}. {item['name']} - {item['path']}")
+                    print("Rerun with --library-index N.")
+                elif status == "missing_requested":
+                    print("connect_blocked: requested memory library was not found")
+                elif status == "invalid_index":
+                    print("connect_blocked: invalid library index")
+                else:
+                    print("connect_needs_memory_library")
+                    print("No existing JourneyMem memory library was found on this computer.")
+                    print("Provide a memory backup zip with --backup, or create one with memory new.")
+                return 1
+            found_existing = True
+    root = root.expanduser().resolve()
+    if not is_memory_library(root):
+        print("connect_blocked: not a JourneyMem memory library")
+        print("Required files: AGENTS.md, ONBOARDING.md, memory/hot/USER.md, memory/hot/MEMORY.md")
+        return 1
+    if found_existing:
+        register_library(home, root, "default" if root == default_library_root(home).resolve() else root.name)
     target = bridge_target_for(agent, args.workspace, args.target, root)
     content = agent_connection_text(root, agent)
     findings = guard_text(root, content + "\n" + str(target))
@@ -1326,6 +1506,10 @@ def command_connect(args: argparse.Namespace) -> int:
         target.write_text(content, encoding="utf-8")
         mode = "overwritten" if args.force else "created"
     write_agent_registry(root, agent, target, mode)
+    if restored:
+        print("Memory library restored from backup")
+    elif found_existing:
+        print("Found existing memory library")
     print("Current Agent connected")
     print(f"Agent: {AGENT_LABELS[agent]}")
     print(f"Connection file: {target}")
@@ -1347,6 +1531,72 @@ def should_backup_file(path: Path, root: Path) -> bool:
     if rel.startswith("memory/hot/") and path.name.endswith(".draft.md"):
         return False
     return path.is_file()
+
+
+def unsafe_backup_member(name: str) -> str | None:
+    posix = PurePosixPath(name)
+    if posix.is_absolute() or ".." in posix.parts or not name.strip():
+        return "unsafe_path"
+    rel = str(posix)
+    if any(part in BACKUP_EXCLUDED_PARTS for part in posix.parts):
+        return "blocked_part"
+    if posix.name.startswith(".env") or "/.env" in f"/{rel}":
+        return "secret_file"
+    if any(rel == prefix or rel.startswith(prefix + "/") for prefix in BACKUP_EXCLUDED_PREFIXES):
+        return "runtime_cache"
+    if Path(posix.name).suffix in BACKUP_EXCLUDED_SUFFIXES:
+        return "local_database"
+    if rel.startswith("memory/hot/") and posix.name.endswith(".draft.md"):
+        return "draft"
+    return None
+
+
+def validate_backup_zip(path: Path) -> tuple[bool, str, set[str]]:
+    if not path.exists():
+        return False, "backup_missing", set()
+    try:
+        with zipfile.ZipFile(path) as archive:
+            names = {info.filename for info in archive.infolist() if not info.is_dir()}
+            for info in archive.infolist():
+                if info.is_dir():
+                    continue
+                reason = unsafe_backup_member(info.filename)
+                if reason:
+                    return False, f"blocked_member:{reason}:{info.filename}", names
+    except zipfile.BadZipFile:
+        return False, "backup_invalid_zip", set()
+    missing = [rel for rel in REQUIRED_MEMORY_LIBRARY_FILES if rel not in names]
+    if missing:
+        return False, f"backup_missing_required:{missing[0]}", names
+    return True, "ok", names
+
+
+def restore_backup_zip(path: Path, home: Path | None, force: bool = False) -> tuple[Path | None, str]:
+    ok, reason, _ = validate_backup_zip(path)
+    if not ok:
+        return None, reason
+    target = default_library_root(home).expanduser()
+    if target.exists() and not force:
+        return None, "restore_target_exists"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="journeymem-restore-", dir=str(target.parent)) as tmp:
+        extracted = Path(tmp) / "library"
+        extracted.mkdir()
+        with zipfile.ZipFile(path) as archive:
+            for info in archive.infolist():
+                if info.is_dir():
+                    continue
+                member_target = extracted / info.filename
+                member_target.parent.mkdir(parents=True, exist_ok=True)
+                member_target.write_bytes(archive.read(info))
+        findings = memory_guard.scan(memory_guard.DEFAULT_PATHS, extracted)
+        if findings:
+            return None, f"restore_safety_blocked:{findings[0].kind}"
+        if target.exists():
+            shutil.rmtree(target)
+        shutil.move(str(extracted), str(target))
+    register_library(home, target, "default")
+    return target, "restored"
 
 
 def default_backup_path(root: Path, backup_dir: Path | None) -> Path:
@@ -1793,6 +2043,10 @@ def build_parser() -> argparse.ArgumentParser:
     start.add_argument("--print", dest="print_only", action="store_true")
     start.add_argument("--output", type=Path, default=None)
     start.add_argument("--backup-dir", type=Path, default=None)
+    start.add_argument("--home", type=Path, default=None, help="Home folder used for ~/.journeymem. Mainly useful for tests.")
+    start.add_argument("--library", default=None, help="Memory library name or path to select from registry.")
+    start.add_argument("--library-index", type=int, default=None, help="1-based memory library choice from registry.")
+    start.add_argument("--backup", type=Path, default=None, help="Backup zip to restore before connecting.")
 
     init = sub.add_parser("init")
     init.add_argument("--answers", type=Path, default=None, help="JSON answers for non-interactive initialization.")
@@ -1805,6 +2059,7 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("--never-store", action="append", default=None)
     init.add_argument("--interactive", action="store_true", help="Prompt for missing answers when stdin is a TTY.")
     init.add_argument("--force", action="store_true", help="Overwrite generated starter files if they already exist.")
+    init.add_argument("--home", type=Path, default=None, help="Home folder used for ~/.journeymem. Mainly useful for tests.")
 
     new = sub.add_parser("new")
     new.add_argument("--answers", type=Path, default=None, help="JSON answers for tests or automation.")
@@ -1817,6 +2072,7 @@ def build_parser() -> argparse.ArgumentParser:
     new.add_argument("--never-store", action="append", default=None)
     new.add_argument("--interactive", action="store_true", help="Prompt for missing answers when stdin is a TTY.")
     new.add_argument("--force", action="store_true", help="Overwrite generated starter files if they already exist.")
+    new.add_argument("--home", type=Path, default=None, help="Home folder used for ~/.journeymem. Mainly useful for tests.")
 
     share = sub.add_parser("share")
     share.add_argument("--agent", choices=sorted(AGENT_BRIDGE_TARGETS), required=True)
@@ -1833,9 +2089,13 @@ def build_parser() -> argparse.ArgumentParser:
     connect.add_argument("--append", action="store_true", help="Append a marked connection block to an existing file.")
     connect.add_argument("--force", action="store_true", help="Overwrite an existing connection file.")
     connect.add_argument("--print", dest="print_only", action="store_true", help="Print the connection text instead of writing a file.")
+    connect.add_argument("--home", type=Path, default=None, help="Home folder used for ~/.journeymem. Mainly useful for tests.")
+    connect.add_argument("--library", default=None, help="Memory library name or path to select from registry.")
+    connect.add_argument("--library-index", type=int, default=None, help="1-based memory library choice from registry.")
+    connect.add_argument("--backup", type=Path, default=None, help="Backup zip to restore before connecting.")
 
     install = sub.add_parser("install")
-    install.add_argument("--agent", choices=("all", *AGENT_INSTALL_TARGETS), default="all")
+    install.add_argument("--agent", choices=("auto", "all", *AGENT_INSTALL_TARGETS), default="all")
     install.add_argument("--workspace", type=Path, default=None, help="Project folder where Agent helper files should be installed.")
     install.add_argument("--home", type=Path, default=None, help="Home folder for user-level helpers. Mainly useful for tests.")
     install.add_argument("--force", action="store_true", help="Overwrite installed helper files.")
@@ -1843,6 +2103,7 @@ def build_parser() -> argparse.ArgumentParser:
     backup = sub.add_parser("backup")
     backup.add_argument("--output", type=Path, default=None, help="Backup zip file path.")
     backup.add_argument("--backup-dir", type=Path, default=None, help="Folder for generated backups.")
+    backup.add_argument("--home", type=Path, default=None, help="Home folder used for ~/.journeymem. Mainly useful for tests.")
 
     remember = sub.add_parser("remember")
     remember.add_argument("--session-id", default="default")
@@ -1873,15 +2134,23 @@ def main(argv: list[str]) -> int:
     if args.command is None:
         print_memory_menu()
         return 0
+    home = getattr(args, "home", None)
     if args.root is None:
         if args.command == "install":
-            args.root = user_default_root()
-        elif args.command in {"start", "new", "connect", "backup"}:
-            default = user_default_root()
-            args.root = default if args.command == "new" or default.exists() else repo_root()
+            args.root = default_library_root(home)
+        elif args.command in {"init", "new"}:
+            args.root = default_library_root(home)
+        elif args.command == "backup":
+            default = default_library_root(home)
+            args.root = default if is_memory_library(default) else repo_root()
+        elif args.command == "start":
+            args.root = None
+        elif args.command == "connect":
+            args.root = None
         else:
             args.root = repo_root()
-    args.root = args.root.resolve()
+    if args.root is not None:
+        args.root = args.root.expanduser().resolve()
     if args.command == "start":
         return command_start(args)
     if args.command in {"init", "new"}:
