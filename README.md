@@ -9,7 +9,7 @@ JourneyMem helps Codex, Claude Code, Cursor, TRAE Work, and other Agents that ca
 Install JourneyMem once:
 
 ```bash
-curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash
 ```
 
 The installer prints the next choices when it finishes.

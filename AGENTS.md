@@ -13,7 +13,7 @@ If the user gives `https://github.com/ivorywanj/agent-memory-starter-kit`, do no
 If possible, install or activate JourneyMem first. If `memory` is unavailable, run the hosted installer:
 
 ```bash
-curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash
 ```
 
 If the user chooses connect/existing and `memory connect` is not on PATH, run:

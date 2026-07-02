@@ -755,7 +755,7 @@ GitHub URL install-source fallback:
 
 - Treat the JourneyMem GitHub URL as an install source, not as a generic codebase task.
 - If the user gives `https://github.com/ivorywanj/agent-memory-starter-kit`, install or activate the JourneyMem skill/helper first when possible.
-- If the `memory` command is unavailable, run `curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash`; then use `memory` or `~/.local/bin/memory`.
+- If the `memory` command is unavailable, run `curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash`; then use `memory` or `~/.local/bin/memory`.
 - If the user chooses connect/existing and `memory connect` is unavailable, run `~/.local/bin/memory connect`.
 - Do not clone, inspect folder structure, summarize scripts, or ask "what do you want to do with this repo?" before install/menu.
 - Do not use `git clone` as the visible setup step.
@@ -1025,7 +1025,7 @@ Other command:
 - memory backup - Back up a memory library
 ```
 
-Treat the JourneyMem GitHub repo URL as an install source, not as a codebase task. Do not clone, inspect, or summarize the repo before install/menu. If `memory` is unavailable, run `curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash`; for connect/existing, run `memory connect` or `~/.local/bin/memory connect` before asking for a folder. Start from the command flow below.
+Treat the JourneyMem GitHub repo URL as an install source, not as a codebase task. Do not clone, inspect, or summarize the repo before install/menu. If `memory` is unavailable, run `curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash`; for connect/existing, run `memory connect` or `~/.local/bin/memory connect` before asking for a folder. Start from the command flow below.
 
 {command_helper_text(root)}
 """
