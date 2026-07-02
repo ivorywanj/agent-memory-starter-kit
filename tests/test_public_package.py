@@ -69,6 +69,10 @@ def assert_entry_response_style_rules(text: str) -> None:
         "ask exactly one question at a time",
         "do not show internal analysis",
         "do not ask where to store the memory library",
+        "if the current user message is exactly `memory`, `$journeymem`, `/memory`, or asks to use journeymem",
+        "the visible first-use menu must keep these command labels exactly in english",
+        "do not translate, remove, or paraphrase the command labels in the first-use menu",
+        "do not read files, inspect folders, browse repository structure, or explain existing memory contents before showing the menu",
         "treat the journeymem github url as an install source",
         "do not clone, inspect folder structure, summarize scripts",
         "if the user invokes `$journeymem`, treat it as `memory`",
@@ -127,11 +131,14 @@ def test_repo_agent_instructions_route_fresh_clone() -> None:
         text = (ROOT / rel).read_text(encoding="utf-8")
         assert "# JourneyMem Agent Instructions" in text
         assert "install source fallback, not a generic codebase task" in text
+        assert "If the user says exactly `memory`, `$journeymem`, `/memory`, or asks to use JourneyMem" in text
+        assert "do not read files, inspect folders, or explain existing memory contents" in text
         assert "do not summarize the repository structure" in text
         assert "install or activate JourneyMem first" in text
         assert "I can help you use JourneyMem." in text
         assert "`memory new` - Create a new memory library" in text
         assert "`memory connect` - Connect this Agent to an existing memory library" in text
+        assert "Keep the command labels exactly as `memory new`, `memory connect`, and `memory backup`; do not translate or paraphrase them." in text
         assert "Do not start `memory new` until the user chooses create/new." in text
         assert "Do not ask \"What should Agents call you?\" before that choice." in text
 
@@ -142,11 +149,17 @@ def test_start_page_prompt_generation() -> None:
         first_screen = text.split("<!-- first-screen-end -->", 1)[0]
         assert "JourneyMem Start" in first_screen
         assert "Start JourneyMem without making your Agent inspect a repo." in first_screen
-        assert "Install JourneyMem" in first_screen
+        assert "Start with the JourneyMem menu." in first_screen
+        assert "1. memory new - Create a memory library" in first_screen
+        assert "2. memory connect - Connect this Agent to an existing memory library" in first_screen
+        assert "curl -fsSL" not in first_screen
+        assert "git clone" not in first_screen
+        assert "./install.sh" not in first_screen
+        assert "Install JourneyMem" not in first_screen
         assert_no_user_first_screen_terms(first_screen)
-        assert "1. Set up JourneyMem on this computer" in text
-        assert "2. Use JourneyMem in my current Agent" in text
-        assert "3. Back up or move my memory library" in text
+        assert "If the memory command is not available yet" in text
+        assert "Use JourneyMem in my current Agent" in text
+        assert "Back up or move my memory library" in text
         assert "Click a copy button when you need to start from an Agent message." in text
         assert "Copy Codex prompt" in text
         assert "Copy TRAE Work prompt" in text
@@ -165,6 +178,26 @@ def test_start_page_prompt_generation() -> None:
         assert "--agent" not in text
         assert "--root" not in text
         assert "API key" not in text
+
+
+def test_readme_starts_with_first_use_menu_before_install_or_clone() -> None:
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    menu_index = text.index("What do you want to do?")
+    before_menu = text[:menu_index]
+    assert "curl -fsSL" not in before_menu
+    assert "git clone" not in before_menu
+    assert "./install.sh" not in before_menu
+    first_blocked_command = min(
+        index
+        for index in (
+            text.find("curl -fsSL"),
+            text.find("git clone"),
+            text.find("./install.sh"),
+        )
+        if index != -1
+    )
+    assert text.index("1. memory new - Create a memory library") < first_blocked_command
+    assert text.index("2. memory connect - Connect this Agent to an existing memory library") < first_blocked_command
 
 
 def test_init_creates_public_runtime() -> None:
@@ -683,8 +716,17 @@ def test_prepare_agent_entry_trials_creates_empty_evidence_pack() -> None:
         assert (output / "prompts/codex-github-fallback-1.prompt.txt").exists()
         assert (output / "prompts/cursor-start-page-1.prompt.txt").exists()
         assert (output / "prompts/trae-github-fallback-1.prompt.txt").exists()
-        assert "\n" not in (output / "prompts/trae-valid-default-1.prompt.txt").read_text(encoding="utf-8").strip()
-        assert "\n" not in (output / "prompts/trae-github-fallback-1.prompt.txt").read_text(encoding="utf-8").strip()
+        trae_valid_prompt = (output / "prompts/trae-valid-default-1.prompt.txt").read_text(encoding="utf-8").strip()
+        trae_github_prompt = (output / "prompts/trae-github-fallback-1.prompt.txt").read_text(encoding="utf-8").strip()
+        all_prompts = "\n".join(path.read_text(encoding="utf-8") for path in (output / "prompts").glob("*.prompt.txt"))
+        assert trae_valid_prompt == "memory"
+        assert trae_github_prompt == "I want to use JourneyMem. Here is the repo: https://github.com/ivorywanj/agent-memory-starter-kit"
+        assert "\n" not in trae_valid_prompt
+        assert "\n" not in trae_github_prompt
+        assert "Do not clone" not in all_prompts
+        assert "do not inspect" not in all_prompts
+        assert "Reply exactly" not in all_prompts
+        assert "reply exactly" not in all_prompts
         assert not list((output / "transcripts").glob("*.txt"))
         assert "- status: fail" in empty_gate.stdout
         assert "- records: 0" in empty_gate.stdout
@@ -947,6 +989,7 @@ def test_memory_install_writes_agent_shortcuts() -> None:
         all_expected_exist = all(path.exists() for path in expected)
         memory_shim_executable = os.access(home / ".local/bin/memory", os.X_OK)
         texts = "\n".join(path.read_text(encoding="utf-8") for path in expected)
+        trae_helper_text = (workspace / ".trae/rules/journeymem-commands.md").read_text(encoding="utf-8")
         duplicate = run(
             "scripts/memory",
             "--root",
@@ -1024,6 +1067,8 @@ def test_memory_install_writes_agent_shortcuts() -> None:
     assert "Do not ask the user to hand-edit memory files" in texts
     assert "Treat the JourneyMem GitHub URL as an install source" in texts
     assert "Do not clone, inspect folder structure, summarize scripts" in texts
+    assert "Keep the command labels exactly as `memory new`, `memory connect`, and `memory backup`; do not translate or paraphrase them." in texts
+    assert "Keep the command labels exactly as `memory new`, `memory connect`, and `memory backup`; do not translate or paraphrase them." in trae_helper_text
     assert_entry_response_style_rules(texts)
     assert duplicate.returncode == 1
     assert "install_blocked: target exists" in duplicate.stdout
@@ -1248,6 +1293,7 @@ def main() -> int:
     tests = [
         test_repo_agent_instructions_route_fresh_clone,
         test_start_page_prompt_generation,
+        test_readme_starts_with_first_use_menu_before_install_or_clone,
         test_init_creates_public_runtime,
         test_memory_shortcuts_and_backup_zip,
         test_memory_connect_finds_existing_library_from_registry,

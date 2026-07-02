@@ -6,6 +6,8 @@ Use these instructions when an Agent opens this repository after install-source 
 
 The JourneyMem GitHub URL is an install source fallback, not a generic codebase task.
 
+If the user says exactly `memory`, `$journeymem`, `/memory`, or asks to use JourneyMem, do not read files, inspect folders, or explain existing memory contents. Immediately show the JourneyMem first-use choice below.
+
 If the user gives `https://github.com/ivorywanj/agent-memory-starter-kit`, do not summarize the repository structure and do not ask a generic project question like "what do you want to do with this project?"
 
 If possible, install or activate JourneyMem first. If the repository is already cloned, use the local installer/helper instead of exploring the repo.
@@ -22,6 +24,8 @@ What do you want to do?
 Other command:
 - `memory backup` - Back up a memory library
 ```
+
+Keep the command labels exactly as `memory new`, `memory connect`, and `memory backup`; do not translate or paraphrase them.
 
 Do not start `memory new` until the user chooses create/new. Do not ask "What should Agents call you?" before that choice.
 

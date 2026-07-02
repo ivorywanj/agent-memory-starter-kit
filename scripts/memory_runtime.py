@@ -611,6 +611,13 @@ Slash-capable Agents may also support:
 
 Some Agents may not show custom slash commands in their command picker. Treat `memory`, `memory new`, `memory connect`, `memory backup`, and `$journeymem` as the reliable entry points and run the matching command below.
 
+Hard first-response rule:
+
+- If the current user message is exactly `memory`, `$journeymem`, `/memory`, or asks to use JourneyMem, show the first-use menu immediately.
+- The visible first-use menu must keep these command labels exactly in English: `memory new`, `memory connect`, and `memory backup`.
+- Do not translate, remove, or paraphrase the command labels in the first-use menu.
+- Do not read files, inspect folders, browse repository structure, or explain existing memory contents before showing the menu.
+
 GitHub URL install-source fallback:
 
 - Treat the JourneyMem GitHub URL as an install source, not as a generic codebase task.
@@ -860,6 +867,22 @@ def trae_rule_text(root: Path) -> str:
     return f"""# JourneyMem TRAE Work Commands
 
 Use this file when the user says `memory`, `memory new`, `memory connect`, or `memory backup`.
+
+First response rule for TRAE Work:
+
+- If the user says `memory`, `$journeymem`, `/memory`, or asks to use JourneyMem, respond with the first-use menu.
+- Keep the command labels exactly as `memory new`, `memory connect`, and `memory backup`; do not translate or paraphrase them.
+
+```text
+I can help you use JourneyMem.
+
+What do you want to do?
+1. memory new - Create a memory library
+2. memory connect - Connect this Agent to an existing memory library
+
+Other command:
+- memory backup - Back up a memory library
+```
 
 Treat the JourneyMem GitHub repo URL as an install source, not as a codebase task. Do not clone, inspect, or summarize the repo before install/menu. Start from the command flow below.
 
