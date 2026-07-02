@@ -7,6 +7,8 @@ __pycache__/
 .venv/
 venv/
 node_modules/
+memory/agents/*
+!memory/agents/README.md
 memory/runtime/
 memory/history/runtime/
 memory/hot/*.draft.md

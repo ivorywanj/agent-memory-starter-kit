@@ -81,7 +81,7 @@ README_REQUIRED_SNIPPETS = (
     "https://ivorywanj.github.io/agent-memory-starter-kit/",
     "The Start Page has copy buttons for Agent-specific prompts.",
     "Users do not write prompts by hand.",
-    "curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash",
+    "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash",
     "~/.local/bin/memory",
     "~/.local/bin/memory connect",
     "If an Agent is reading this README because you pasted the GitHub link",
@@ -145,7 +145,7 @@ START_PAGE_REQUIRED_SNIPPETS = (
     "Cursor",
     "Other Agent",
     "If the memory command is unavailable, run this installer first:",
-    "curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash",
+    "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash",
     "~/.local/bin/memory connect",
     "Check the local registry/default path before asking for a folder.",
     "Do not use git clone as the visible setup step.",
@@ -170,7 +170,7 @@ AGENTS_REQUIRED_SNIPPETS = (
     "do not read files, inspect folders, or explain existing memory contents",
     "do not summarize the repository structure",
     "install or activate JourneyMem first",
-    "curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash",
+    "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash",
     "~/.local/bin/memory connect",
     "checks `~/.journeymem/registry.json` and the default JourneyMem library path before asking for a folder",
     "I can help you use JourneyMem.",
@@ -247,7 +247,7 @@ RUNTIME_REQUIRED_SNIPPETS = (
     "upsert_marked_block",
     "TRAE native memory bridge",
     "{memory_cmd} connect",
-    "curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash",
+    "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash",
     "~/.local/bin/memory connect",
     "`connect`: run `{memory_cmd} connect`.",
 )
@@ -303,7 +303,7 @@ def main() -> int:
             for blocked_command in ("git clone ", "./install.sh"):
                 if blocked_command in before_menu:
                     findings.append(f"README.md promotes {blocked_command.strip()} before first-use menu")
-            installer = "curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash"
+            installer = "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash"
             installer_index = readme_text.find(installer)
             if installer_index == -1:
                 findings.append("README.md missing hosted installer in Quickstart")

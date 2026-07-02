@@ -360,7 +360,7 @@ https://github.com/ivorywanj/agent-memory-starter-kit 我想用这个journeymem�
 - Public README and Start Page Agent prompts must contain the concrete hosted installer command:
 
 ```bash
-curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash
 ```
 
 - Public README and Start Page Agent prompts must contain the concrete fallback command:
@@ -446,7 +446,7 @@ Keep the Agent-facing prompt rules separate: Agents should still avoid repo insp
 - In `README.md`, the first command under `## Quickstart` is:
 
 ```bash
-curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash
 ```
 
 - In `README.md`, the installer command appears before the first standalone `memory` command and before the first menu block.

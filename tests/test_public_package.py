@@ -135,7 +135,7 @@ def test_repo_agent_instructions_route_fresh_clone() -> None:
         assert "do not read files, inspect folders, or explain existing memory contents" in text
         assert "do not summarize the repository structure" in text
         assert "install or activate JourneyMem first" in text
-        assert "curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash" in text
+        assert "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash" in text
         assert "~/.local/bin/memory connect" in text
         assert "checks `~/.journeymem/registry.json` and the default JourneyMem library path before asking for a folder" in text
         assert "I can help you use JourneyMem." in text
@@ -173,7 +173,7 @@ def test_start_page_prompt_generation() -> None:
         for agent in ("Codex", "TRAE Work", "Claude Code", "Cursor", "Other Agent"):
             assert f"<summary>{agent}</summary>" in text
         assert text.count("If the memory command is unavailable, run this installer first:") >= 5
-        assert text.count("curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash") >= 5
+        assert text.count("curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash") >= 5
         assert text.count("~/.local/bin/memory connect") >= 5
         assert text.count("Check the local registry/default path before asking for a folder.") >= 5
         assert text.count("Do not use git clone as the visible setup step.") >= 5
@@ -188,7 +188,7 @@ def test_start_page_prompt_generation() -> None:
 
 def test_readme_quickstart_installs_before_menu_or_connect() -> None:
     text = (ROOT / "README.md").read_text(encoding="utf-8")
-    installer = "curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash"
+    installer = "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash"
     installer_index = text.index(installer)
     run_index = text.index("Run it:")
     menu_index = text.index("What do you want to do?")
@@ -1099,7 +1099,7 @@ def test_memory_install_writes_agent_shortcuts() -> None:
     assert "Do not ask the user to hand-edit memory files" in texts
     assert "Treat the JourneyMem GitHub URL as an install source" in texts
     assert "Do not clone, inspect folder structure, summarize scripts" in texts
-    assert "curl -fsSL https://ivorywanj.github.io/agent-memory-starter-kit/install.sh | bash" in texts
+    assert "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash" in texts
     assert "~/.local/bin/memory connect" in texts
     assert "Do not use `git clone` as the visible setup step." in texts
     assert "Keep the command labels exactly as `memory new`, `memory connect`, and `memory backup`; do not translate or paraphrase them." in texts
