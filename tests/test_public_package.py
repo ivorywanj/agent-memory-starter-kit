@@ -126,15 +126,21 @@ def test_repo_agent_instructions_route_fresh_clone() -> None:
         ".cursorrules",
         ".cursor/rules/journeymem-first-run.mdc",
         ".trae/rules/journeymem-first-run.md",
+        ".trae/skills/journeymem/SKILL.md",
         "JOURNEYMEM.md",
     )
     for rel in instruction_files:
         text = (ROOT / rel).read_text(encoding="utf-8")
         assert "# JourneyMem Agent Instructions" in text
+        if rel in ("SKILL.md", ".trae/skills/journeymem/SKILL.md"):
+            assert 'name: "journeymem"' in text
+            assert "Invoke when user says JourneyMem" in text
         assert "JourneyMem skill link, not a generic codebase task" in text
         assert "If the user says exactly `memory`, `$journeymem`, `/memory`, or asks to use JourneyMem" in text
         assert "do not read files, inspect folders, browse the web page, fetch GitHub content, run commands, or explain existing memory contents" in text
         assert "treat it as the JourneyMem skill link" in text
+        assert "ready-made TRAE skill at `.trae/skills/journeymem/SKILL.md`" in text
+        assert "Install or copy that existing skill folder into the current workspace." in text
         assert "First show the menu." in text
         assert "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash" in text
         assert "~/.local/bin/memory connect" in text
@@ -198,6 +204,8 @@ def test_readme_quickstart_installs_before_menu_or_connect() -> None:
     assert "./install.sh" not in before_menu
     assert "AI Agents: if a user sends this GitHub link, treat it as the JourneyMem skill link." in before_menu
     assert "Your first visible response must be this menu:" in before_menu
+    assert "ready-made TRAE skill at `.trae/skills/journeymem/SKILL.md`" in text
+    assert "Do not create a new skill, do not run `scripts/memory new`" in text
     quickstart = text.split("## Quickstart", 1)[1].split("\n## ", 1)[0]
     installer_index = quickstart.index(installer)
     run_index = quickstart.index("Run it:")
@@ -842,7 +850,7 @@ def test_prepare_agent_entry_trials_creates_empty_evidence_pack() -> None:
         trae_github_prompt = (output / "prompts/trae-github-fallback-1.prompt.txt").read_text(encoding="utf-8").strip()
         all_prompts = "\n".join(path.read_text(encoding="utf-8") for path in (output / "prompts").glob("*.prompt.txt"))
         assert trae_valid_prompt == "memory"
-        assert trae_github_prompt == "I want to use JourneyMem. Here is the skill link: https://github.com/ivorywanj/agent-memory-starter-kit"
+        assert trae_github_prompt == "我想使用这个记忆库：https://github.com/ivorywanj/agent-memory-starter-kit"
         assert "\n" not in trae_valid_prompt
         assert "\n" not in trae_github_prompt
         assert "Do not clone" not in all_prompts

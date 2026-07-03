@@ -207,7 +207,7 @@ python3 scripts/prepare_agent_entry_trials.py \
 valid_default: memory
 skill_trigger: $journeymem
 start_page: I want to use JourneyMem from this Start Page: https://ivorywanj.github.io/agent-memory-starter-kit/
-github_fallback: I want to use JourneyMem. Here is the skill link: https://github.com/ivorywanj/agent-memory-starter-kit
+github_fallback: 我想使用这个记忆库：https://github.com/ivorywanj/agent-memory-starter-kit
 ```
 
 5. The generated `prompts/trae-*.prompt.txt` files may be used only if they contain the realistic user messages above and do not include defensive instructions.
@@ -216,6 +216,54 @@ github_fallback: I want to use JourneyMem. Here is the skill link: https://githu
 8. Run the transcript scorer and PRD gate.
 
 If Computer Use reaches a login, permission, upload, external submission, or sensitive-data transmission step, stop and request confirmation at action time.
+
+---
+
+# Addendum: TRAE Requires Native Skill Package Layout
+
+Status: Draft for implementation
+Owner: project maintainer
+Date: 2026-07-03
+
+## Problem
+
+After the GitHub-link-first-screen fix, real TRAE Work validation can still fail before JourneyMem instructions run. TRAE may treat the GitHub link as a generic skill creation task, invoke its built-in `skill-creator`, clone the repository, and prepare to run `scripts/memory new`.
+
+Clicking `Skip` can stop damage during testing, but it is not a normal user path and does not count as acceptance.
+
+TRAE's local skill documentation requires user skills to live at:
+
+```text
+.trae/skills/<skill-name>/SKILL.md
+```
+
+Root `SKILL.md` alone is not enough for TRAE-native skill installation.
+
+## Goal
+
+Ship JourneyMem as a TRAE-recognizable user skill as well as a public GitHub package.
+
+TRAE should be able to install or use the existing JourneyMem skill at `.trae/skills/journeymem/SKILL.md` instead of creating a new skill, cloning the repository as a project, or running `memory new`.
+
+## Required Changes
+
+- Generate `.trae/skills/journeymem/SKILL.md` in the public package.
+- The TRAE-native skill must start with the same `memory new` / `memory connect` menu.
+- README, root `SKILL.md`, and `AGENTS.md` must point TRAE `skill-creator` to the existing TRAE skill folder.
+- Public checks must fail if `.trae/skills/journeymem/SKILL.md` is missing.
+- Real TRAE validation must use normal user wording, including:
+
+```text
+我想使用这个记忆库：https://github.com/ivorywanj/agent-memory-starter-kit
+```
+
+## Quantitative Acceptance Metrics
+
+- `public-export/.trae/skills/journeymem/SKILL.md` exists after export.
+- The file has frontmatter `name: "journeymem"` and a description under 200 characters.
+- Public tests assert that `SKILL.md`, `.trae/skills/journeymem/SKILL.md`, and `AGENTS.md` all contain the first-response menu.
+- The release check fails if the TRAE-native skill file is missing.
+- Real TRAE Work validation fails if the first user-visible step is a Run/allow prompt for `git clone`, `scripts/memory new`, or any personal-memory write before the `memory new` / `memory connect` menu.
 
 ## Rollout and Safety
 

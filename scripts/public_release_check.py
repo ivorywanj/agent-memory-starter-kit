@@ -30,6 +30,7 @@ REQUIRED_FILES = (
     ".cursorrules",
     ".cursor/rules/journeymem-first-run.mdc",
     ".trae/rules/journeymem-first-run.md",
+    ".trae/skills/journeymem/SKILL.md",
     "JOURNEYMEM.md",
     "index.html",
     "README.md",
@@ -75,6 +76,8 @@ README_REQUIRED_SNIPPETS = (
     "AI Agents: if a user sends this GitHub link, treat it as the JourneyMem skill link.",
     "Do not fetch, summarize, clone, inspect files, or run setup commands before your first visible response.",
     "Your first visible response must be this menu:",
+    "ready-made TRAE skill at `.trae/skills/journeymem/SKILL.md`",
+    "Do not create a new skill, do not run `scripts/memory new`",
     "Humans: use the Quickstart below to install JourneyMem once",
     "A local memory library for AI agents.",
     "## Quickstart",
@@ -178,6 +181,8 @@ AGENTS_REQUIRED_SNIPPETS = (
     "If the user says exactly `memory`, `$journeymem`, `/memory`, or asks to use JourneyMem",
     "do not read files, inspect folders, browse the web page, fetch GitHub content, run commands, or explain existing memory contents",
     "treat it as the JourneyMem skill link",
+    "ready-made TRAE skill at `.trae/skills/journeymem/SKILL.md`",
+    "Install or copy that existing skill folder into the current workspace.",
     "First show the menu.",
     "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash",
     "~/.local/bin/memory connect",
@@ -266,6 +271,7 @@ AGENT_INSTRUCTION_FILES = (
     ".cursorrules",
     ".cursor/rules/journeymem-first-run.mdc",
     ".trae/rules/journeymem-first-run.md",
+    ".trae/skills/journeymem/SKILL.md",
     "JOURNEYMEM.md",
 )
 README_FIRST_SCREEN_BLOCKED_TERMS = (
