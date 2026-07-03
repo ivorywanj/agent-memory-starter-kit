@@ -1,3 +1,8 @@
+---
+name: journeymem
+description: Use when the user sends the JourneyMem GitHub link, says JourneyMem, memory, memory new, memory connect, or asks to set up an Agent memory library.
+---
+
 # JourneyMem Agent Instructions
 
 Use these instructions when an Agent receives the JourneyMem GitHub skill link or opens this package after install fallback.

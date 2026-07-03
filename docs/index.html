@@ -194,17 +194,18 @@ Other command:
 
     <section id="agent-prompts">
       <h2>Copy an Agent-ready prompt</h2>
-      <p>Click a copy button when you need to start from an Agent message. The GitHub link is a JourneyMem skill link; the Agent should install or activate JourneyMem first, then show the menu.</p>
+      <p>Click a copy button when you need to start from an Agent message. The GitHub link is a JourneyMem skill link; the first visible Agent response should be the menu. Install or connect only after the user chooses.</p>
 
       <details open>
         <summary>Codex</summary>
         <button class="copy" type="button" data-target="codex-prompt">Copy Codex prompt</button>
         <pre><code id="codex-prompt">I want to use JourneyMem in Codex.
-If the memory command is unavailable, run this installer first:
+First show the JourneyMem menu below.
+If I choose memory new or memory connect and the memory command is unavailable, run this installer:
 curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash
-Then show the JourneyMem menu. If I choose memory connect, run ~/.local/bin/memory connect when memory connect is not on PATH. Check the local registry/default path before asking for a folder.
+If I choose memory connect, run ~/.local/bin/memory connect when memory connect is not on PATH. Check the local registry/default path before asking for a folder.
 Do not use git clone as the visible setup step.
-Then show exactly:
+Menu:
 What do you want to do?
 1. memory new - Create a memory library
 2. memory connect - Connect this Agent to an existing memory library
@@ -217,11 +218,12 @@ Other command:
         <summary>TRAE Work</summary>
         <button class="copy" type="button" data-target="trae-prompt">Copy TRAE Work prompt</button>
         <pre><code id="trae-prompt">I want to use JourneyMem in TRAE Work.
-If the memory command is unavailable, run this installer first:
+First show the JourneyMem menu below.
+If I choose memory new or memory connect and the memory command is unavailable, run this installer:
 curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash
-Then show the JourneyMem menu. If I choose memory connect, run ~/.local/bin/memory connect when memory connect is not on PATH. Check the local registry/default path before asking for a folder.
+If I choose memory connect, run ~/.local/bin/memory connect when memory connect is not on PATH. Check the local registry/default path before asking for a folder.
 Do not use git clone as the visible setup step.
-Then show exactly:
+Menu:
 What do you want to do?
 1. memory new - Create a memory library
 2. memory connect - Connect this Agent to an existing memory library
@@ -234,11 +236,12 @@ Other command:
         <summary>Claude Code</summary>
         <button class="copy" type="button" data-target="claude-prompt">Copy Claude Code prompt</button>
         <pre><code id="claude-prompt">I want to use JourneyMem in Claude Code.
-If the memory command is unavailable, run this installer first:
+First show the JourneyMem menu below.
+If I choose memory new or memory connect and the memory command is unavailable, run this installer:
 curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash
-Then show the JourneyMem menu. If I choose memory connect, run ~/.local/bin/memory connect when memory connect is not on PATH. Check the local registry/default path before asking for a folder.
+If I choose memory connect, run ~/.local/bin/memory connect when memory connect is not on PATH. Check the local registry/default path before asking for a folder.
 Do not use git clone as the visible setup step.
-Then show exactly:
+Menu:
 What do you want to do?
 1. memory new - Create a memory library
 2. memory connect - Connect this Agent to an existing memory library
@@ -251,11 +254,12 @@ Other command:
         <summary>Cursor</summary>
         <button class="copy" type="button" data-target="cursor-prompt">Copy Cursor prompt</button>
         <pre><code id="cursor-prompt">I want to use JourneyMem in Cursor.
-If the memory command is unavailable, run this installer first:
+First show the JourneyMem menu below.
+If I choose memory new or memory connect and the memory command is unavailable, run this installer:
 curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash
-Then show the JourneyMem menu. If I choose memory connect, run ~/.local/bin/memory connect when memory connect is not on PATH. Check the local registry/default path before asking for a folder.
+If I choose memory connect, run ~/.local/bin/memory connect when memory connect is not on PATH. Check the local registry/default path before asking for a folder.
 Do not use git clone as the visible setup step.
-Then show exactly:
+Menu:
 What do you want to do?
 1. memory new - Create a memory library
 2. memory connect - Connect this Agent to an existing memory library
@@ -268,11 +272,12 @@ Other command:
         <summary>Other Agent</summary>
         <button class="copy" type="button" data-target="other-prompt">Copy prompt</button>
         <pre><code id="other-prompt">I want to use JourneyMem in my current Agent.
-If the memory command is unavailable, run this installer first:
+First show the JourneyMem menu below.
+If I choose memory new or memory connect and the memory command is unavailable, run this installer:
 curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash
-Then show the JourneyMem menu. If I choose memory connect, run ~/.local/bin/memory connect when memory connect is not on PATH. Check the local registry/default path before asking for a folder.
+If I choose memory connect, run ~/.local/bin/memory connect when memory connect is not on PATH. Check the local registry/default path before asking for a folder.
 Do not use git clone as the visible setup step.
-Then show exactly:
+Menu:
 What do you want to do?
 1. memory new - Create a memory library
 2. memory connect - Connect this Agent to an existing memory library

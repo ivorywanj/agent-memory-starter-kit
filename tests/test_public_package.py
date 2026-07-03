@@ -120,6 +120,7 @@ def assert_quiet_first_response(text: str) -> None:
 
 def test_repo_agent_instructions_route_fresh_clone() -> None:
     instruction_files = (
+        "SKILL.md",
         "AGENTS.md",
         "CLAUDE.md",
         ".cursorrules",
@@ -132,9 +133,9 @@ def test_repo_agent_instructions_route_fresh_clone() -> None:
         assert "# JourneyMem Agent Instructions" in text
         assert "JourneyMem skill link, not a generic codebase task" in text
         assert "If the user says exactly `memory`, `$journeymem`, `/memory`, or asks to use JourneyMem" in text
-        assert "do not read files, inspect folders, or explain existing memory contents" in text
+        assert "do not read files, inspect folders, browse the web page, fetch GitHub content, run commands, or explain existing memory contents" in text
         assert "treat it as the JourneyMem skill link" in text
-        assert "install or activate JourneyMem first" in text
+        assert "First show the menu." in text
         assert "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash" in text
         assert "~/.local/bin/memory connect" in text
         assert "checks `~/.journeymem/registry.json` and the default JourneyMem library path before asking for a folder" in text
@@ -172,7 +173,8 @@ def test_start_page_prompt_generation() -> None:
         assert "navigator.clipboard.writeText" in text
         for agent in ("Codex", "TRAE Work", "Claude Code", "Cursor", "Other Agent"):
             assert f"<summary>{agent}</summary>" in text
-        assert text.count("If the memory command is unavailable, run this installer first:") >= 5
+        assert text.count("First show the JourneyMem menu below.") >= 5
+        assert text.count("If I choose memory new or memory connect and the memory command is unavailable, run this installer:") >= 5
         assert text.count("curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash") >= 5
         assert text.count("~/.local/bin/memory connect") >= 5
         assert text.count("Check the local registry/default path before asking for a folder.") >= 5
@@ -189,25 +191,30 @@ def test_start_page_prompt_generation() -> None:
 def test_readme_quickstart_installs_before_menu_or_connect() -> None:
     text = (ROOT / "README.md").read_text(encoding="utf-8")
     installer = "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash"
-    installer_index = text.index(installer)
-    run_index = text.index("Run it:")
-    menu_index = text.index("What do you want to do?")
-    before_menu = text[:menu_index]
+    top_menu_index = text.index("What do you want to do?")
+    before_menu = text[:top_menu_index]
     assert "git clone" not in before_menu
+    assert "curl -fsSL" not in before_menu
     assert "./install.sh" not in before_menu
-    assert installer_index < run_index < menu_index
-    assert text.index("memory", run_index) < menu_index
+    assert "AI Agents: if a user sends this GitHub link, treat it as the JourneyMem skill link." in before_menu
+    assert "Your first visible response must be this menu:" in before_menu
+    quickstart = text.split("## Quickstart", 1)[1].split("\n## ", 1)[0]
+    installer_index = quickstart.index(installer)
+    run_index = quickstart.index("Run it:")
+    choose_index = quickstart.index("Choose what you want to do:")
+    assert installer_index < run_index < choose_index
+    assert quickstart.index("memory", run_index) < choose_index
     assert "git clone https://github.com/ivorywanj/agent-memory-starter-kit.git" not in text
     assert "Install JourneyMem once:" in text
     assert "Choose what you want to do:" in text
     assert "For connect fallback when PATH is not loaded:" in text
     assert "If an Agent is reading this README because you pasted the GitHub link" in text
     assert "treat that link as the JourneyMem skill link" in text
-    assert "install or activate JourneyMem instead of summarizing or cloning a repository" in text
+    assert "The first visible response should be the JourneyMem menu above" in text
     assert "~/.local/bin/memory connect" in text
     assert "checks `~/.journeymem/registry.json` and the default JourneyMem library path before asking for any folder path" in text
-    assert text.index("1. memory new - Create a memory library") > installer_index
-    assert text.index("2. memory connect - Connect this Agent to an existing memory library") > installer_index
+    assert quickstart.index("1. memory new - Create a memory library") > installer_index
+    assert quickstart.index("2. memory connect - Connect this Agent to an existing memory library") > installer_index
 
 
 def test_init_creates_public_runtime() -> None:
