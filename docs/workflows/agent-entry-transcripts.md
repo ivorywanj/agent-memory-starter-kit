@@ -52,7 +52,7 @@ The TRAE Work acceptance prompts should look like real user inputs:
 memory
 $journeymem
 I want to use JourneyMem from this Start Page: https://ivorywanj.github.io/agent-memory-starter-kit/
-I want to use JourneyMem. Here is the repo: https://github.com/ivorywanj/agent-memory-starter-kit
+I want to use JourneyMem. Here is the skill link: https://github.com/ivorywanj/agent-memory-starter-kit
 ```
 
 If Codex CLI is available on this machine, collect the Codex transcript automatically:
