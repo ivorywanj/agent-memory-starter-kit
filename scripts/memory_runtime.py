@@ -1068,6 +1068,45 @@ Treat the JourneyMem GitHub URL as a skill link, not as a codebase task. Do not 
 """
 
 
+def trae_skill_text(root: Path) -> str:
+    return f"""---
+name: "journeymem"
+description: "Shows JourneyMem memory new/connect menu. Invoke when user says JourneyMem, memory, memory new/connect, or sends this GitHub link."
+---
+
+# JourneyMem TRAE Skill
+
+Use this skill when the user says `JourneyMem`, `memory`, `memory new`, `memory connect`, `memory backup`, or provides the JourneyMem GitHub link.
+
+First response rule:
+
+- Show the JourneyMem menu before clone, web browsing, repository inspection, or setup commands.
+- Keep the command labels exactly as `memory new`, `memory connect`, and `memory backup`; do not translate or paraphrase them.
+- Do not run `memory new` until the user chooses create/new.
+
+```text
+I can help you use JourneyMem.
+
+What do you want to do?
+1. memory new - Create a memory library
+2. memory connect - Connect this Agent to an existing memory library
+
+Other command:
+- memory backup - Back up a memory library
+```
+
+If `memory` is unavailable after the user chooses an action, run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash
+```
+
+For `memory connect`, run `memory connect` or `~/.local/bin/memory connect` before asking for a folder. The command checks the local JourneyMem registry/default path first.
+
+{command_helper_text(root)}
+"""
+
+
 def generic_command_text(root: Path) -> str:
     return command_helper_text(root)
 
@@ -1218,6 +1257,7 @@ def install_files_for(root: Path, agent: str, workspace: Path, home: Path) -> li
         text = trae_rule_text(root)
         return [
             InstallFile(agent, workspace / ".trae/rules/journeymem-commands.md", text),
+            InstallFile(agent, workspace / ".trae/skills/journeymem/SKILL.md", trae_skill_text(root)),
             InstallFile(agent, workspace / "TRAE_MEMORY.md", text),
         ]
     if agent == "generic":

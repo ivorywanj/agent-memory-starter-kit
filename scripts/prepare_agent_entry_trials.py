@@ -49,7 +49,7 @@ PROMPTS = {
     "valid-default": "memory",
     "skill-trigger": "$journeymem",
     "start-page": "I want to use JourneyMem from this Start Page: https://ivorywanj.github.io/agent-memory-starter-kit/",
-    "github-fallback": "I want to use JourneyMem. Here is the skill link: https://github.com/ivorywanj/agent-memory-starter-kit",
+    "github-fallback": "我想使用这个记忆库：https://github.com/ivorywanj/agent-memory-starter-kit",
 }
 
 
