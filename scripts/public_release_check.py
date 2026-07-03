@@ -85,9 +85,10 @@ README_REQUIRED_SNIPPETS = (
     "~/.local/bin/memory",
     "~/.local/bin/memory connect",
     "If an Agent is reading this README because you pasted the GitHub link",
-    "run the hosted installer above instead of summarizing or cloning the repository",
+    "treat that link as the JourneyMem skill link",
+    "install or activate JourneyMem instead of summarizing or cloning a repository",
     "installed local skill",
-    "GitHub URL is an install source fallback",
+    "GitHub link is a JourneyMem skill link",
     "detects the current Agent when possible",
     "when it cannot detect one, it installs helpers for all supported Agents",
     "It does not create a personal memory library until the user chooses `memory new`",
@@ -97,7 +98,7 @@ README_REQUIRED_SNIPPETS = (
     "memory new",
     "memory connect",
     "memory backup",
-    "JourneyMem's GitHub URL is an install source fallback, not the primary Agent entry.",
+    "For external users, the GitHub link is a JourneyMem skill link.",
     "If `memory` is not found in the current shell, run `~/.local/bin/memory`",
     "real `memory` shell command",
     "[$journeymem](<generated-local-skill-path>/SKILL.md)",
@@ -107,7 +108,7 @@ README_REQUIRED_SNIPPETS = (
     "Do not show the full questionnaire upfront",
     "Do not ask where to store the memory library during `memory new`; use the default location.",
     "Do you want to create a new memory library, or connect this Agent to an existing memory library?",
-    "Install-source fallback rule: if the JourneyMem GitHub URL appears first",
+    "If an Agent is reading this README because you pasted the GitHub link",
     "no import is needed",
     "checks `~/.journeymem/registry.json` and the default JourneyMem library path before asking for any folder path",
     "AGENTS.md`, `ONBOARDING.md`, `memory/hot/USER.md`, and `memory/hot/MEMORY.md",
@@ -127,7 +128,7 @@ README_REQUIRED_SNIPPETS = (
 )
 START_PAGE_REQUIRED_SNIPPETS = (
     "JourneyMem Start",
-    "Start JourneyMem without making your Agent inspect a repo.",
+    "Start JourneyMem as an Agent skill.",
     "Start with the JourneyMem menu.",
     "1. memory new - Create a memory library",
     "2. memory connect - Connect this Agent to an existing memory library",
@@ -165,10 +166,10 @@ INSTALLER_REQUIRED_SNIPPETS = (
 )
 AGENTS_REQUIRED_SNIPPETS = (
     "# JourneyMem Agent Instructions",
-    "install source fallback, not a generic codebase task",
+    "JourneyMem skill link, not a generic codebase task",
     "If the user says exactly `memory`, `$journeymem`, `/memory`, or asks to use JourneyMem",
     "do not read files, inspect folders, or explain existing memory contents",
-    "do not summarize the repository structure",
+    "treat it as the JourneyMem skill link",
     "install or activate JourneyMem first",
     "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash",
     "~/.local/bin/memory connect",
@@ -269,6 +270,17 @@ README_FIRST_SCREEN_BLOCKED_TERMS = (
     "cli",
     "markdown",
 )
+USER_SETUP_FILES_WITHOUT_GIT_CLONE = (
+    "README.md",
+    "docs/first-run-wizard.md",
+    "docs/productized-user-flow.md",
+    "docs/workflows/memory-new.md",
+    "docs/workflows/memory-connect.md",
+    "docs/workflows/memory-install.md",
+    "docs/releases/v0.1.1.md",
+    "docs/releases/v0.1.2.md",
+    "docs/releases/v0.1.4.md",
+)
 
 
 def iter_text_files() -> list[Path]:
@@ -349,6 +361,11 @@ def main() -> int:
         for blocked_command in ("git clone ", "curl -fsSL", "./install.sh"):
             if blocked_command in first_screen:
                 findings.append(f"{rel} first screen promotes install/clone command: {blocked_command.strip()}")
+    clone_command = "git clone https://github.com/ivorywanj/agent-memory-starter-kit.git"
+    for rel in USER_SETUP_FILES_WITHOUT_GIT_CLONE:
+        path = ROOT / rel
+        if path.exists() and clone_command in path.read_text(encoding="utf-8", errors="replace"):
+            findings.append(f"{rel} exposes git clone as user-facing setup")
     for rel in ("install.sh", "docs/install.sh"):
         installer_file = ROOT / rel
         if not installer_file.exists():

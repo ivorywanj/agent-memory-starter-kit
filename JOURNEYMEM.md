@@ -1,14 +1,14 @@
 # JourneyMem Agent Instructions
 
-Use these instructions when an Agent opens this repository after install-source fallback or manual clone.
+Use these instructions when an Agent receives the JourneyMem GitHub skill link or opens this package after install fallback.
 
 ## First Response
 
-The JourneyMem GitHub URL is an install source fallback, not a generic codebase task.
+The JourneyMem GitHub URL is a JourneyMem skill link, not a generic codebase task.
 
 If the user says exactly `memory`, `$journeymem`, `/memory`, or asks to use JourneyMem, do not read files, inspect folders, or explain existing memory contents. Immediately show the JourneyMem first-use choice below.
 
-If the user gives `https://github.com/ivorywanj/agent-memory-starter-kit`, do not summarize the repository structure and do not ask a generic project question like "what do you want to do with this project?"
+If the user gives `https://github.com/ivorywanj/agent-memory-starter-kit`, treat it as the JourneyMem skill link. Do not summarize repository structure and do not ask a generic project question like "what do you want to do with this project?"
 
 If possible, install or activate JourneyMem first. If `memory` is unavailable, run the hosted installer:
 
@@ -22,7 +22,7 @@ If the user chooses connect/existing and `memory connect` is not on PATH, run:
 ~/.local/bin/memory connect
 ```
 
-The connect command checks `~/.journeymem/registry.json` and the default JourneyMem library path before asking for a folder. If the repository is already cloned, use the local installer/helper instead of exploring the repo.
+The connect command checks `~/.journeymem/registry.json` and the default JourneyMem library path before asking for a folder. If this package is already cloned, use the local installer/helper instead of exploring package files.
 
 Instead, show this JourneyMem first-use choice:
 

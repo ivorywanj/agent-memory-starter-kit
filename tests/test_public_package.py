@@ -73,7 +73,7 @@ def assert_entry_response_style_rules(text: str) -> None:
         "the visible first-use menu must keep these command labels exactly in english",
         "do not translate, remove, or paraphrase the command labels in the first-use menu",
         "do not read files, inspect folders, browse repository structure, or explain existing memory contents before showing the menu",
-        "treat the journeymem github url as an install source",
+        "treat the journeymem github url as a journeymem skill link",
         "do not clone, inspect folder structure, summarize scripts",
         "if the user invokes `$journeymem`, treat it as `memory`",
         "do not infer that they want `memory new`",
@@ -130,10 +130,10 @@ def test_repo_agent_instructions_route_fresh_clone() -> None:
     for rel in instruction_files:
         text = (ROOT / rel).read_text(encoding="utf-8")
         assert "# JourneyMem Agent Instructions" in text
-        assert "install source fallback, not a generic codebase task" in text
+        assert "JourneyMem skill link, not a generic codebase task" in text
         assert "If the user says exactly `memory`, `$journeymem`, `/memory`, or asks to use JourneyMem" in text
         assert "do not read files, inspect folders, or explain existing memory contents" in text
-        assert "do not summarize the repository structure" in text
+        assert "treat it as the JourneyMem skill link" in text
         assert "install or activate JourneyMem first" in text
         assert "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash" in text
         assert "~/.local/bin/memory connect" in text
@@ -151,7 +151,7 @@ def test_start_page_prompt_generation() -> None:
         text = (ROOT / rel).read_text(encoding="utf-8")
         first_screen = text.split("<!-- first-screen-end -->", 1)[0]
         assert "JourneyMem Start" in first_screen
-        assert "Start JourneyMem without making your Agent inspect a repo." in first_screen
+        assert "Start JourneyMem as an Agent skill." in first_screen
         assert "Start with the JourneyMem menu." in first_screen
         assert "1. memory new - Create a memory library" in first_screen
         assert "2. memory connect - Connect this Agent to an existing memory library" in first_screen
@@ -202,7 +202,8 @@ def test_readme_quickstart_installs_before_menu_or_connect() -> None:
     assert "Choose what you want to do:" in text
     assert "For connect fallback when PATH is not loaded:" in text
     assert "If an Agent is reading this README because you pasted the GitHub link" in text
-    assert "run the hosted installer above instead of summarizing or cloning the repository" in text
+    assert "treat that link as the JourneyMem skill link" in text
+    assert "install or activate JourneyMem instead of summarizing or cloning a repository" in text
     assert "~/.local/bin/memory connect" in text
     assert "checks `~/.journeymem/registry.json` and the default JourneyMem library path before asking for any folder path" in text
     assert text.index("1. memory new - Create a memory library") > installer_index
@@ -418,6 +419,88 @@ def test_memory_connect_finds_existing_library_from_registry() -> None:
         assert "Current Agent connected" in fallback_connect.stdout
         assert "folder path" not in fallback_connect.stdout.lower()
         assert str(root.resolve()) in fallback_connection
+
+
+def test_public_package_blocks_trae_auto_clone_memory_creation() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        bad_new = run(
+            "scripts/memory",
+            "--root",
+            "./my-memory",
+            "new",
+            "--name",
+            "External User",
+            "--language",
+            "中文",
+            "--work-type",
+            "developer",
+            "--communication-style",
+            "结论优先",
+            "--project",
+            "Private Project",
+            check=False,
+        )
+        home = Path(tmp) / "home"
+        normal_new = run(
+            "scripts/memory",
+            "new",
+            "--home",
+            str(home),
+            "--name",
+            "External User",
+            "--language",
+            "English",
+            "--work-type",
+            "solo builder",
+            "--communication-style",
+            "Short and direct.",
+            "--project",
+            "Example Project",
+        )
+        connect = run(
+            "scripts/memory",
+            "connect",
+            "--home",
+            str(home),
+            "--workspace",
+            str(ROOT),
+            env={"AGENT_MEMORY_AGENT": "trae"},
+            check=False,
+        )
+        default_library = home / ".journeymem/libraries/default"
+        bad_share = run(
+            "scripts/memory",
+            "--root",
+            str(default_library),
+            "share",
+            "--agent",
+            "trae",
+            "--workspace",
+            str(ROOT),
+            check=False,
+        )
+
+        assert bad_new.returncode == 1
+        assert "init_blocked: JourneyMem skill package clone is not a memory library" in bad_new.stdout
+        assert not (ROOT / "my-memory/memory/hot/USER.md").exists()
+        assert not (ROOT / "my-memory/AGENTS.md").exists()
+        assert "Memory initialized" in normal_new.stdout
+        user_text = (default_library / "memory/hot/USER.md").read_text(encoding="utf-8")
+        assert "External User" in user_text
+        assert ("Wan" + "jia") not in user_text
+        assert ("万" + "家") not in user_text
+        assert connect.returncode == 0
+        assert "Found existing memory library" in connect.stdout
+        assert "Current Agent connected" in connect.stdout
+        assert "Connection file: skipped for public starter-kit clone" in connect.stdout
+        assert "No personal memory was written into the cloned package." in connect.stdout
+        assert bad_share.returncode == 1
+        assert "share_blocked: JourneyMem skill package clone is not a project workspace" in bad_share.stdout
+        assert not (ROOT / ".trae/rules/journeymem.md").exists()
+        assert not (ROOT / "TRAE_MEMORY.md").exists()
+        native_memory = (home / ".trae-cn/memory/user_profile.md").read_text(encoding="utf-8")
+        assert "This TRAE native memory file is connected" in native_memory
+        assert str(default_library.resolve()) in native_memory
 
 
 def test_memory_connect_restores_backup_zip_on_clean_home() -> None:
@@ -752,7 +835,7 @@ def test_prepare_agent_entry_trials_creates_empty_evidence_pack() -> None:
         trae_github_prompt = (output / "prompts/trae-github-fallback-1.prompt.txt").read_text(encoding="utf-8").strip()
         all_prompts = "\n".join(path.read_text(encoding="utf-8") for path in (output / "prompts").glob("*.prompt.txt"))
         assert trae_valid_prompt == "memory"
-        assert trae_github_prompt == "I want to use JourneyMem. Here is the repo: https://github.com/ivorywanj/agent-memory-starter-kit"
+        assert trae_github_prompt == "I want to use JourneyMem. Here is the skill link: https://github.com/ivorywanj/agent-memory-starter-kit"
         assert "\n" not in trae_valid_prompt
         assert "\n" not in trae_github_prompt
         assert "Do not clone" not in all_prompts
@@ -1097,7 +1180,7 @@ def test_memory_install_writes_agent_shortcuts() -> None:
     assert "scripts/memory" in texts
     assert "--root" in texts
     assert "Do not ask the user to hand-edit memory files" in texts
-    assert "Treat the JourneyMem GitHub URL as an install source" in texts
+    assert "Treat the JourneyMem GitHub URL as a JourneyMem skill link" in texts
     assert "Do not clone, inspect folder structure, summarize scripts" in texts
     assert "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash" in texts
     assert "~/.local/bin/memory connect" in texts

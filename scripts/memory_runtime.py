@@ -148,6 +148,43 @@ def repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
+PUBLIC_STARTER_SENTINELS = (
+    "JOURNEYMEM.md",
+    "install.sh",
+    "scripts/memory",
+    "scripts/memory_runtime.py",
+    "templates/public/answers.example.json",
+)
+
+
+def is_public_starter_package(root: Path | None = None) -> bool:
+    package_root = root or repo_root()
+    return all((package_root / rel).exists() for rel in PUBLIC_STARTER_SENTINELS)
+
+
+def path_is_within(path: Path, parent: Path) -> bool:
+    try:
+        path.expanduser().resolve().relative_to(parent.expanduser().resolve())
+    except ValueError:
+        return False
+    return True
+
+
+def current_public_starter_package() -> Path | None:
+    root = repo_root()
+    return root if is_public_starter_package(root) else None
+
+
+def blocks_public_package_memory_target(root: Path) -> bool:
+    package_root = current_public_starter_package()
+    return bool(package_root and path_is_within(root, package_root))
+
+
+def blocks_public_package_bridge_target(target: Path) -> bool:
+    package_root = current_public_starter_package()
+    return bool(package_root and path_is_within(target, package_root))
+
+
 def memory_script() -> Path:
     return Path(__file__).resolve().with_name("memory")
 
@@ -751,16 +788,16 @@ Hard first-response rule:
 - Do not translate, remove, or paraphrase the command labels in the first-use menu.
 - Do not read files, inspect folders, browse repository structure, or explain existing memory contents before showing the menu.
 
-GitHub URL install-source fallback:
+JourneyMem skill-link fallback:
 
-- Treat the JourneyMem GitHub URL as an install source, not as a generic codebase task.
+- Treat the JourneyMem GitHub URL as a JourneyMem skill link, not as a generic codebase task.
 - If the user gives `https://github.com/ivorywanj/agent-memory-starter-kit`, install or activate the JourneyMem skill/helper first when possible.
 - If the `memory` command is unavailable, run `curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash`; then use `memory` or `~/.local/bin/memory`.
 - If the user chooses connect/existing and `memory connect` is unavailable, run `~/.local/bin/memory connect`.
-- Do not clone, inspect folder structure, summarize scripts, or ask "what do you want to do with this repo?" before install/menu.
+- Do not clone, inspect folder structure, summarize scripts, or ask "what do you want to do with this repo?" before skill/menu.
 - Do not use `git clone` as the visible setup step.
-- If the environment has already cloned the repo, do not explore it. Use its installer/helper and show the JourneyMem menu.
-- If the user only asks you to clone this repo or run `git clone ...` and `cd agent-memory-starter-kit`, do not infer that they want `memory new`.
+- If the environment has already cloned the package, do not explore it. Use its installer/helper and show the JourneyMem menu.
+- If the user only asks you to clone this package or run `git clone ...` and `cd agent-memory-starter-kit`, do not infer that they want `memory new`.
 - After install, activation, clone, or cd, stop and ask the two-choice first-use question: create a new memory library or connect this Agent to an existing memory library.
 - Run `memory new` only after the user chooses create/new. Run `memory connect` only after the user chooses connect/existing.
 
@@ -841,14 +878,14 @@ def codex_skill_text(root: Path) -> str:
     helper = command_helper_text(root)
     return f"""---
 name: journeymem
-description: Use when the user says JourneyMem, $journeymem, memory, memory new, memory connect, memory backup, gives the JourneyMem GitHub URL as an install source, or asks to set up, connect, share, or back up a JourneyMem library.
+description: Use when the user says JourneyMem, $journeymem, memory, memory new, memory connect, memory backup, gives the JourneyMem GitHub URL as a skill link, or asks to set up, connect, share, or back up a JourneyMem library.
 ---
 
 # JourneyMem
 
 ## When To Use
 
-Use this skill when the user says `JourneyMem`, `$journeymem`, `memory`, `memory new`, `memory connect`, `memory backup`, gives the JourneyMem GitHub URL as an install source, or asks to set up, connect, share, or back up a JourneyMem library.
+Use this skill when the user says `JourneyMem`, `$journeymem`, `memory`, `memory new`, `memory connect`, `memory backup`, gives the JourneyMem GitHub URL as a skill link, or asks to set up, connect, share, or back up a JourneyMem library.
 
 ## Instructions
 
@@ -1002,7 +1039,7 @@ alwaysApply: true
 def trae_rule_text(root: Path) -> str:
     return f"""---
 alwaysApply: true
-description: JourneyMem setup commands, first-use menu, memory new, memory connect, memory backup, $journeymem, /memory, agent memory starter kit install source
+description: JourneyMem setup commands, first-use menu, memory new, memory connect, memory backup, $journeymem, /memory, agent memory starter kit skill link
 ---
 
 # JourneyMem TRAE Work Commands
@@ -1025,7 +1062,7 @@ Other command:
 - memory backup - Back up a memory library
 ```
 
-Treat the JourneyMem GitHub repo URL as an install source, not as a codebase task. Do not clone, inspect, or summarize the repo before install/menu. If `memory` is unavailable, run `curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash`; for connect/existing, run `memory connect` or `~/.local/bin/memory connect` before asking for a folder. Start from the command flow below.
+Treat the JourneyMem GitHub URL as a skill link, not as a codebase task. Do not clone, inspect, or summarize the package before install/menu. If `memory` is unavailable, run `curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash`; for connect/existing, run `memory connect` or `~/.local/bin/memory connect` before asking for a folder. Start from the command flow below.
 
 {command_helper_text(root)}
 """
@@ -1521,6 +1558,11 @@ Bridge files are pointers only. They must not duplicate user profile, hot memory
 
 def command_init(args: argparse.Namespace) -> int:
     root = args.root
+    if blocks_public_package_memory_target(root):
+        print("init_blocked: JourneyMem skill package clone is not a memory library")
+        print("Do not create ./my-memory inside agent-memory-starter-kit.")
+        print("Run `memory` and choose `memory new`, or run `memory connect` for an existing local library.")
+        return 1
     answers = load_init_answers(args)
     files = public_template_files(answers)
     generated_text = "\n\n".join(files.values())
@@ -1677,10 +1719,17 @@ def command_connect(args: argparse.Namespace) -> int:
     if found_existing and not args.print_only:
         register_library(home, root, "default" if root == default_library_root(home).resolve() else root.name)
     target = bridge_target_for(agent, args.workspace, args.target, root)
+    target_in_public_package = blocks_public_package_bridge_target(target)
+    skip_workspace_bridge = target_in_public_package and agent == "trae" and not args.target
+    if target_in_public_package and not skip_workspace_bridge:
+        print("connect_blocked: JourneyMem skill package clone is not a project workspace")
+        print("Do not write Agent connection files into agent-memory-starter-kit.")
+        print("Run `memory connect` from the real project folder, or pass --workspace /path/to/project.")
+        return 1
     content = agent_connection_text(root, agent)
     trae_native_target = trae_native_memory_target(home) if agent == "trae" else None
     trae_native_content = trae_native_memory_text(root) if agent == "trae" else None
-    guard_payload = content + "\n" + str(target)
+    guard_payload = "" if skip_workspace_bridge else content + "\n" + str(target)
     if trae_native_target is not None and trae_native_content is not None:
         guard_payload += "\n" + trae_native_content + "\n" + str(trae_native_target)
     findings = guard_text(root, guard_payload)
@@ -1690,25 +1739,29 @@ def command_connect(args: argparse.Namespace) -> int:
     if args.print_only:
         print(content)
         return 0
-    if target.exists() and not args.force and not args.append:
+    if not skip_workspace_bridge and target.exists() and not args.force and not args.append:
         print("connect_blocked: target exists")
         print(str(target))
         print("Use --append to add a connection block or --force to overwrite.")
         return 1
-    target.parent.mkdir(parents=True, exist_ok=True)
-    mode = "created"
-    if target.exists() and args.append:
-        existing = target.read_text(encoding="utf-8")
-        if "<!-- BEGIN AGENT MEMORY CONNECTION -->" in existing and not args.force:
-            print("connect_blocked: connection already present")
-            print(str(target))
-            return 1
-        text = existing.rstrip() + "\n\n<!-- BEGIN AGENT MEMORY CONNECTION -->\n" + content.rstrip() + "\n<!-- END AGENT MEMORY CONNECTION -->\n"
-        target.write_text(text, encoding="utf-8")
-        mode = "appended"
+    mode = "skipped_public_package_workspace" if skip_workspace_bridge else "created"
+    registry_target = target
+    if not skip_workspace_bridge:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists() and args.append:
+            existing = target.read_text(encoding="utf-8")
+            if "<!-- BEGIN AGENT MEMORY CONNECTION -->" in existing and not args.force:
+                print("connect_blocked: connection already present")
+                print(str(target))
+                return 1
+            text = existing.rstrip() + "\n\n<!-- BEGIN AGENT MEMORY CONNECTION -->\n" + content.rstrip() + "\n<!-- END AGENT MEMORY CONNECTION -->\n"
+            target.write_text(text, encoding="utf-8")
+            mode = "appended"
+        else:
+            target.write_text(content, encoding="utf-8")
+            mode = "overwritten" if args.force else "created"
     else:
-        target.write_text(content, encoding="utf-8")
-        mode = "overwritten" if args.force else "created"
+        registry_target = trae_native_target or target
     if trae_native_target is not None and trae_native_content is not None:
         trae_native_target.parent.mkdir(parents=True, exist_ok=True)
         existing_native = trae_native_target.read_text(encoding="utf-8") if trae_native_target.exists() else ""
@@ -1719,14 +1772,18 @@ def command_connect(args: argparse.Namespace) -> int:
             TRAE_NATIVE_MEMORY_END,
         )
         trae_native_target.write_text(updated_native, encoding="utf-8")
-    write_agent_registry(root, agent, target, mode)
+    write_agent_registry(root, agent, registry_target, mode)
     if restored:
         print("Memory library restored from backup")
     elif found_existing:
         print("Found existing memory library")
     print("Current Agent connected")
     print(f"Agent: {AGENT_LABELS[agent]}")
-    print(f"Connection file: {target}")
+    if skip_workspace_bridge:
+        print("Connection file: skipped for public starter-kit clone")
+        print("No personal memory was written into the cloned package.")
+    else:
+        print(f"Connection file: {target}")
     if trae_native_target is not None:
         print(f"TRAE native memory bridge: {trae_native_target}")
     print(f"Memory library: {root}")
@@ -1846,6 +1903,11 @@ def command_backup(args: argparse.Namespace) -> int:
 def command_share(args: argparse.Namespace) -> int:
     root = args.root
     target = bridge_target_for(args.agent, args.workspace, args.target, root)
+    if blocks_public_package_bridge_target(target):
+        print("share_blocked: JourneyMem skill package clone is not a project workspace")
+        print("Do not write Agent bridge files into agent-memory-starter-kit.")
+        print("Run `memory share` from the real project folder, or pass --workspace /path/to/project.")
+        return 1
     content = agent_bridge_text(root, args.agent)
     findings = guard_text(root, content + "\n" + str(target))
     if findings:

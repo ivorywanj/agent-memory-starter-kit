@@ -207,7 +207,7 @@ python3 scripts/prepare_agent_entry_trials.py \
 valid_default: memory
 skill_trigger: $journeymem
 start_page: I want to use JourneyMem from this Start Page: https://ivorywanj.github.io/agent-memory-starter-kit/
-github_fallback: I want to use JourneyMem. Here is the repo: https://github.com/ivorywanj/agent-memory-starter-kit
+github_fallback: I want to use JourneyMem. Here is the skill link: https://github.com/ivorywanj/agent-memory-starter-kit
 ```
 
 5. The generated `prompts/trae-*.prompt.txt` files may be used only if they contain the realistic user messages above and do not include defensive instructions.
