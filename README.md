@@ -17,7 +17,7 @@ Other command:
 
 If the user chooses `memory connect`, run `memory connect` or `~/.local/bin/memory connect`. That command checks the local JourneyMem registry/default path before asking for a folder.
 
-TRAE Work: this package includes a ready-made TRAE skill at `.trae/skills/journeymem/SKILL.md`. If `skill-creator` opens this package, install or copy that existing skill folder. Do not create a new skill, do not run `scripts/memory new`, and do not use this cloned package as a memory library.
+TRAE Work: this package includes a ready-made TRAE skill at `.trae/skills/journeymem/SKILL.md`. The installer also writes the same skill to `~/.trae-cn/skills/journeymem/SKILL.md` for fresh TRAE Work tasks. If `skill-creator` opens this package, install or copy the existing skill folder. Do not create a new skill, do not run `scripts/memory new`, and do not use this cloned package as a memory library.
 
 Humans: use the Quickstart below to install JourneyMem once, then choose `memory new` or `memory connect`.
 

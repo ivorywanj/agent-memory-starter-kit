@@ -97,7 +97,7 @@ git diff --check
 
 # Addendum: Installer Completion Must Show The First-Use Choices
 
-Status: Draft for implementation
+Status: Implemented
 Owner: project maintainer
 Date: 2026-07-02
 
@@ -109,18 +109,16 @@ The installer should not automatically create or connect a memory library. It sh
 
 ## Goal
 
-After `install.sh` finishes successfully, the terminal output must directly show the first-use choices:
+After `install.sh` finishes successfully, the terminal output must directly show the three main JourneyMem functions:
 
 ```text
-What do you want to do?
+Main JourneyMem functions:
 1. memory new - Create a memory library
 2. memory connect - Connect this Agent to an existing memory library
-
-Other command:
-- memory backup - Back up a memory library
+3. memory backup - Back up a memory library
 ```
 
-It should still tell the user how to run `memory`, but the completion output itself should make the create/connect choice visible.
+It should still tell the user how to run `memory`, but the completion output itself should make create, connect, and backup visible.
 
 ## Non-Goals
 
@@ -133,9 +131,9 @@ It should still tell the user how to run `memory`, but the completion output its
 
 - `sh install.sh` exits with status `0` in the existing clean-home fixture.
 - The successful installer output contains `JourneyMem installed`.
-- The successful installer output contains `What do you want to do?`.
+- The successful installer output contains `Main JourneyMem functions:`.
 - The successful installer output contains both `1. memory new - Create a memory library` and `2. memory connect - Connect this Agent to an existing memory library`.
-- The successful installer output contains `- memory backup - Back up a memory library`.
+- The successful installer output contains `3. memory backup - Back up a memory library`.
 - The installer still does not create a default personal memory library until the user chooses `memory new`.
 - Existing local gates still pass:
 
@@ -221,7 +219,7 @@ If Computer Use reaches a login, permission, upload, external submission, or sen
 
 # Addendum: TRAE Requires Native Skill Package Layout
 
-Status: Draft for implementation
+Status: Implemented; real TRAE Work acceptance still pending
 Owner: project maintainer
 Date: 2026-07-03
 
@@ -231,13 +229,14 @@ After the GitHub-link-first-screen fix, real TRAE Work validation can still fail
 
 Clicking `Skip` can stop damage during testing, but it is not a normal user path and does not count as acceptance.
 
-TRAE's local skill documentation requires user skills to live at:
+TRAE's official skill documentation and built-in `skill-creator` show two supported install surfaces:
 
 ```text
-.trae/skills/<skill-name>/SKILL.md
+project skill: .trae/skills/<skill-name>/SKILL.md
+global skill: ~/.trae-cn/skills/<skill-name>/SKILL.md
 ```
 
-Root `SKILL.md` alone is not enough for TRAE-native skill installation.
+Root `SKILL.md` alone is not enough for TRAE-native skill installation. The public package needs a TRAE-native project skill folder, and the installer must write the same JourneyMem skill to the user's global TRAE skill directory. Without the global skill, fresh TRAE Work tasks that are not attached to the package workspace can still treat `memory` as ordinary text.
 
 ## Goal
 
@@ -248,6 +247,7 @@ TRAE should be able to install or use the existing JourneyMem skill at `.trae/sk
 ## Required Changes
 
 - Generate `.trae/skills/journeymem/SKILL.md` in the public package.
+- Install `~/.trae-cn/skills/journeymem/SKILL.md` on the user's machine.
 - The TRAE-native skill must start with the same `memory new` / `memory connect` menu.
 - README, root `SKILL.md`, and `AGENTS.md` must point TRAE `skill-creator` to the existing TRAE skill folder.
 - Public checks must fail if `.trae/skills/journeymem/SKILL.md` is missing.
@@ -260,6 +260,7 @@ TRAE should be able to install or use the existing JourneyMem skill at `.trae/sk
 ## Quantitative Acceptance Metrics
 
 - `public-export/.trae/skills/journeymem/SKILL.md` exists after export.
+- `memory install --agent trae` writes `~/.trae-cn/skills/journeymem/SKILL.md`.
 - The file has frontmatter `name: "journeymem"` and a description under 200 characters.
 - Public tests assert that `SKILL.md`, `.trae/skills/journeymem/SKILL.md`, and `AGENTS.md` all contain the first-response menu.
 - The release check fails if the TRAE-native skill file is missing.
@@ -275,6 +276,53 @@ TRAE should be able to install or use the existing JourneyMem skill at `.trae/sk
 ## Open Questions
 
 - None for the first implementation pass.
+
+---
+
+# Addendum: Installed TRAE Skill Is Accepted; Bare Repo Shorthand Is Not
+
+Status: Implemented for installed-skill path; bare repo shorthand still pending
+Owner: project maintainer
+Date: 2026-07-03
+
+## Problem
+
+The product owner accepted a fallback acceptance path: after installation, JourneyMem may show the three main functions (`memory new`, `memory connect`, `memory backup`) instead of requiring an uninstalled Agent to infer the menu from a bare GitHub link.
+
+Real TRAE Work testing confirmed the installed-skill path works after writing the global skill to:
+
+```text
+~/.trae-cn/skills/journeymem/SKILL.md
+```
+
+A fresh TRAE Work task with `memory` loaded the `journeymem` skill and returned the expected menu.
+
+However, a bare prompt containing only:
+
+```text
+ivorywanj/agent-memory-starter-kit
+```
+
+still did not reliably load the JourneyMem skill in TRAE Work. TRAE treated it as a generic repository task or stayed in Thinking until stopped.
+
+## Accepted Path
+
+- Run the installer.
+- Installer completion prints:
+
+```text
+Main JourneyMem functions:
+1. memory new - Create a memory library
+2. memory connect - Connect this Agent to an existing memory library
+3. memory backup - Back up a memory library
+```
+
+- In a fresh TRAE Work task, `memory` loads the installed `journeymem` skill and shows the `memory new` / `memory connect` menu with `memory backup`.
+
+## Remaining Work
+
+- Do not claim bare repo shorthand is accepted.
+- Continue testing natural prompts that include intent, such as `我想安装这个 ivorywanj/agent-memory-starter-kit`, after TRAE refreshes skill metadata or after improving the installed skill trigger metadata further.
 
 ---
 

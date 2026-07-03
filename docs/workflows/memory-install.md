@@ -20,6 +20,7 @@ scripts/memory install --agent all --workspace ./my-project
 | Codex | local plugin package and user-level JourneyMem skill |
 | Claude Code | project command files |
 | Cursor | project rule helper |
+| TRAE Work | global skill, project skill, project rule helper |
 | Generic Agent | project command helper |
 
 Native slash menus vary by Agent. Use the text shortcuts `memory`, `memory new`, `memory connect`, and `memory backup` as the stable entries. Slash-capable Agents may also support `/memory`, `/memory new`, `/memory connect`, and `/memory backup`.
@@ -29,7 +30,7 @@ Best-effort alias command files such as `/memory-new`, `/memory-connect`, and `/
 ## Pass Criteria
 
 - Shared `memory` shell shortcut is executable.
-- Codex local plugin package, Claude Code command files, Cursor rule, TRAE Work rule, and generic helper files are written.
+- Codex local plugin package, Claude Code command files, Cursor rule, TRAE Work global/project skills, TRAE Work rule, and generic helper files are written.
 - Duplicate install blocks unless `--force` is used.
 - Helper files include `memory`, `memory new`, `memory connect`, and `memory backup`.
 - Helper files do not copy profile details, project facts, history, or secrets.

@@ -8,7 +8,7 @@ The JourneyMem GitHub URL is a JourneyMem skill link, not a generic codebase tas
 
 If the user says exactly `memory`, `$journeymem`, `/memory`, or asks to use JourneyMem, do not read files, inspect folders, browse the web page, fetch GitHub content, run commands, or explain existing memory contents before the first response. Immediately show the JourneyMem first-use choice below.
 
-If the user gives `https://github.com/ivorywanj/agent-memory-starter-kit` or `github.com/ivorywanj/agent-memory-starter-kit`, treat it as the JourneyMem skill link. Do not summarize repository structure and do not ask a generic project question like "what do you want to do with this project?"
+If the user gives `https://github.com/ivorywanj/agent-memory-starter-kit`, `github.com/ivorywanj/agent-memory-starter-kit`, or `ivorywanj/agent-memory-starter-kit`, treat it as the JourneyMem skill link. Do not summarize repository structure and do not ask a generic project question like "what do you want to do with this project?"
 
 TRAE Work / skill-creator: this package already contains a ready-made TRAE skill at `.trae/skills/journeymem/SKILL.md`. Install or copy that existing skill folder into the current workspace. Do not create a new skill, do not run `scripts/memory new`, and do not use this cloned package as a memory library.
 

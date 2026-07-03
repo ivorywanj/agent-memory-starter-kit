@@ -791,7 +791,7 @@ Hard first-response rule:
 JourneyMem skill-link fallback:
 
 - Treat the JourneyMem GitHub URL as a JourneyMem skill link, not as a generic codebase task.
-- If the user gives `https://github.com/ivorywanj/agent-memory-starter-kit`, install or activate the JourneyMem skill/helper first when possible.
+- If the user gives `https://github.com/ivorywanj/agent-memory-starter-kit`, `github.com/ivorywanj/agent-memory-starter-kit`, or `ivorywanj/agent-memory-starter-kit`, install or activate the JourneyMem skill/helper first when possible.
 - If the `memory` command is unavailable, run `curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash`; then use `memory` or `~/.local/bin/memory`.
 - If the user chooses connect/existing and `memory connect` is unavailable, run `~/.local/bin/memory connect`.
 - Do not clone, inspect folder structure, summarize scripts, or ask "what do you want to do with this repo?" before skill/menu.
@@ -1071,12 +1071,12 @@ Treat the JourneyMem GitHub URL as a skill link, not as a codebase task. Do not 
 def trae_skill_text(root: Path) -> str:
     return f"""---
 name: "journeymem"
-description: "Shows JourneyMem memory new/connect menu. Invoke when user says JourneyMem, memory, memory new/connect, or sends this GitHub link."
+description: "Shows JourneyMem memory new/connect menu. Invoke when user says JourneyMem, memory, memory new/connect/backup, or mentions ivorywanj/agent-memory-starter-kit."
 ---
 
 # JourneyMem TRAE Skill
 
-Use this skill when the user says `JourneyMem`, `memory`, `memory new`, `memory connect`, `memory backup`, or provides the JourneyMem GitHub link.
+Use this skill when the user says `JourneyMem`, `memory`, `memory new`, `memory connect`, `memory backup`, provides the JourneyMem GitHub link, or mentions `ivorywanj/agent-memory-starter-kit`.
 
 First response rule:
 
@@ -1219,6 +1219,10 @@ def shared_install_files(root: Path, home: Path) -> list[InstallFile]:
     return [InstallFile("shell", shell_shim_path(home), memory_shell_shim_text(root), 0o755)]
 
 
+def trae_global_skill_path(home: Path) -> Path:
+    return home / ".trae-cn/skills/journeymem/SKILL.md"
+
+
 def bin_dir_on_path(path: Path) -> bool:
     target = path.expanduser().resolve()
     for entry in os.environ.get("PATH", "").split(os.pathsep):
@@ -1256,6 +1260,7 @@ def install_files_for(root: Path, agent: str, workspace: Path, home: Path) -> li
     if agent == "trae":
         text = trae_rule_text(root)
         return [
+            InstallFile(agent, trae_global_skill_path(home), trae_skill_text(root)),
             InstallFile(agent, workspace / ".trae/rules/journeymem-commands.md", text),
             InstallFile(agent, workspace / ".trae/skills/journeymem/SKILL.md", trae_skill_text(root)),
             InstallFile(agent, workspace / "TRAE_MEMORY.md", text),
@@ -1312,6 +1317,7 @@ def command_install(args: argparse.Namespace) -> int:
     print("Slash-capable Agents: /memory, /memory new, /memory connect, /memory backup")
     print("Codex custom slash commands are best-effort; current Codex may not show plugin commands.")
     print("If your Agent does not show slash commands, use the text shortcuts above.")
+    print_install_function_menu()
     shim = shell_shim_path(home)
     shim_dir = shim.parent
     if bin_dir_on_path(shim_dir):
@@ -1712,6 +1718,14 @@ def print_memory_menu() -> None:
     print("- /memory new")
     print("- /memory connect")
     print("- /memory backup")
+
+
+def print_install_function_menu() -> None:
+    print("")
+    print("Main JourneyMem functions:")
+    print("1. memory new - Create a memory library")
+    print("2. memory connect - Connect this Agent to an existing memory library")
+    print("3. memory backup - Back up a memory library")
 
 
 def command_connect(args: argparse.Namespace) -> int:

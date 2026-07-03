@@ -169,11 +169,10 @@ START_PAGE_REQUIRED_SNIPPETS = (
 INSTALLER_REQUIRED_SNIPPETS = (
     "JourneyMem installed",
     "Start now:",
-    "What do you want to do?",
+    "Main JourneyMem functions:",
     "1. memory new - Create a memory library",
     "2. memory connect - Connect this Agent to an existing memory library",
-    "Other command:",
-    "- memory backup - Back up a memory library",
+    "3. memory backup - Back up a memory library",
 )
 AGENTS_REQUIRED_SNIPPETS = (
     "# JourneyMem Agent Instructions",

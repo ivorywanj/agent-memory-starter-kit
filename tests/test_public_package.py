@@ -1112,7 +1112,9 @@ def test_memory_install_writes_agent_shortcuts() -> None:
             workspace / ".claude/commands/memory-connect.md",
             workspace / ".claude/commands/memory-backup.md",
             workspace / ".cursor/rules/journeymem-commands.mdc",
+            home / ".trae-cn/skills/journeymem/SKILL.md",
             workspace / ".trae/rules/journeymem-commands.md",
+            workspace / ".trae/skills/journeymem/SKILL.md",
             workspace / "TRAE_MEMORY.md",
             workspace / "JOURNEYMEM_COMMANDS.md",
         ]
@@ -1165,6 +1167,7 @@ def test_memory_install_writes_agent_shortcuts() -> None:
         cursor_shim = cursor_home / ".local/bin/memory"
         cursor_shim_exists = cursor_shim.exists()
         cursor_shim_executable = os.access(cursor_shim, os.X_OK)
+        trae_global_skill_text = (home / ".trae-cn/skills/journeymem/SKILL.md").read_text(encoding="utf-8")
 
     assert "JourneyMem shortcuts installed" in install.stdout
     assert "Installed for: Codex, Claude Code, Cursor, TRAE Work, Generic Agent" in install.stdout
@@ -1173,6 +1176,10 @@ def test_memory_install_writes_agent_shortcuts() -> None:
     assert "Text shortcuts: memory new, memory connect, memory backup" in install.stdout
     assert "Shell command installed: memory" in install.stdout
     assert "Skill-capable Agents: $journeymem" in install.stdout
+    assert "Main JourneyMem functions:" in install.stdout
+    assert "1. memory new - Create a memory library" in install.stdout
+    assert "2. memory connect - Connect this Agent to an existing memory library" in install.stdout
+    assert "3. memory backup - Back up a memory library" in install.stdout
     assert "PATH action: add" in install.stdout
     assert all_expected_exist
     assert memory_shim_executable
@@ -1200,8 +1207,11 @@ def test_memory_install_writes_agent_shortcuts() -> None:
     assert "curl -fsSL https://raw.githubusercontent.com/ivorywanj/agent-memory-starter-kit/main/install.sh | bash" in texts
     assert "~/.local/bin/memory connect" in texts
     assert "Do not use `git clone` as the visible setup step." in texts
+    assert "ivorywanj/agent-memory-starter-kit" in texts
     assert "Keep the command labels exactly as `memory new`, `memory connect`, and `memory backup`; do not translate or paraphrase them." in texts
     assert "Keep the command labels exactly as `memory new`, `memory connect`, and `memory backup`; do not translate or paraphrase them." in trae_helper_text
+    assert 'name: "journeymem"' in trae_global_skill_text
+    assert "mentions ivorywanj/agent-memory-starter-kit" in trae_global_skill_text
     assert trae_helper_text.startswith("---\nalwaysApply: true\n")
     assert f"--root {root} connect" not in texts
     assert_entry_response_style_rules(texts)
@@ -1341,10 +1351,10 @@ def test_install_script_installs_command_without_creating_memory_library() -> No
     assert f"{home}/.local/bin/memory" in result.stdout
     assert "If memory is not found in this terminal, run:" in result.stdout
     assert f'export PATH="{home}/.local/bin:$PATH"' in result.stdout
-    assert "What do you want to do?" in result.stdout
+    assert "Main JourneyMem functions:" in result.stdout
     assert "1. memory new - Create a memory library" in result.stdout
     assert "2. memory connect - Connect this Agent to an existing memory library" in result.stdout
-    assert "- memory backup - Back up a memory library" in result.stdout
+    assert "3. memory backup - Back up a memory library" in result.stdout
     assert registry == {"agents": {}, "default_library": None, "libraries": [], "version": 1}
     assert memory_cmd_exists
     assert memory_cmd_executable
@@ -1370,9 +1380,10 @@ def test_install_script_installs_command_without_creating_memory_library() -> No
     assert not auto_trae_helper
     assert remote_result.returncode == 0, remote_result.stdout
     assert "JourneyMem installed" in remote_result.stdout
-    assert "What do you want to do?" in remote_result.stdout
+    assert "Main JourneyMem functions:" in remote_result.stdout
     assert "1. memory new - Create a memory library" in remote_result.stdout
     assert "2. memory connect - Connect this Agent to an existing memory library" in remote_result.stdout
+    assert "3. memory backup - Back up a memory library" in remote_result.stdout
     assert "A local memory library for AI agents." in remote_package_readme
     assert "stale package" not in remote_package_readme
     assert str(remote_package / "scripts/memory") in remote_shim_text
